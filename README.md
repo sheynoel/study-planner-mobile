@@ -1,50 +1,66 @@
-# Welcome to your Expo app 👋
+# Study Planner Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo and React Native TypeScript client for a personal, cloud-synchronized student planner and file organizer.
 
-## Get started
+## Current status
 
-1. Install dependencies
+This repository is still the Expo SDK 54 `create-expo-app` starter with Expo Router, example tabs, a modal, themed components, and template image assets. Planner screens, backend integration, authentication, SecureStore, SQLite, notifications, and file workflows are planned but are not implemented.
 
-   ```bash
-   npm install
-   ```
+The sibling `study-planner-api` repository owns the product and backend planning documents:
 
-2. Start the app
+- `../study-planner-api/docs/PRODUCT.md`
+- `../study-planner-api/docs/FEATURES.md`
+- `../study-planner-api/docs/DATA_MODEL.md`
+- `../study-planner-api/docs/ARCHITECTURE.md`
+- `../study-planner-api/docs/TASKS.md`
 
-   ```bash
-   npx expo start
-   ```
+Read those documents before changing product behavior or API integration.
 
-In the output, you'll find options to open the app in a
+## Planned experience
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Manage personal and course-related tasks and calendar events.
+- Manage courses and recurring class schedules.
+- View events, task deadlines, and class occurrences in combined month, week, and agenda calendars.
+- Organize, upload, download, open, rename, delete, and filter personal or course files.
+- Authenticate against the NestJS API and store credentials securely.
+- Add notifications, local SQLite caching, offline synchronization, and an APK build in later roadmap phases.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project structure
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+study-planner-mobile/
+|-- app/                   Expo Router starter routes
+|-- assets/images/         Starter icons and images
+|-- components/            Starter reusable UI components
+|-- constants/             Theme constants
+|-- hooks/                 Theme/color-scheme hooks
+|-- scripts/               create-expo-app reset utility
+|-- AGENTS.md              Rules for coding agents
+|-- app.json               Expo configuration
+`-- package.json           Scripts and dependencies
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Future feature UI, API clients, secure storage, local persistence, and synchronization code should remain separated as described in the backend architecture document. New directories should be introduced only when required by an explicitly requested implementation task.
 
-## Learn more
+## Local commands
 
-To learn more about developing your project with Expo, look at the following resources:
+From this repository:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm start
+npm run android
+npm run ios
+npm run web
+npm run lint
+```
 
-## Join the community
+Use the exact Expo SDK 54 documentation when making code changes: <https://docs.expo.dev/versions/v54.0.0/>.
 
-Join our community of developers creating universal apps.
+## Scope guardrails
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Tasks, events, and files may be personal or course-related.
+- Class schedules always belong to courses.
+- API contracts come from the backend documentation and implementation, not assumptions in UI code.
+- SQLite will be a later local cache/offline layer; the cloud API remains authoritative across devices.
+- File contents will live in future cloud object storage, while PostgreSQL stores metadata.
+
