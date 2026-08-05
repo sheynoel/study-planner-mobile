@@ -2,10 +2,11 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { calendarRoutes } from '@/lib/calendar/routes';
 import { courseRoutes } from '@/lib/courses/routes';
 import { taskRoutes } from '@/lib/tasks/routes';
 
-export function AppSectionTabs({ active }: { active: 'courses' | 'tasks' }) {
+export function AppSectionTabs({ active }: { active: 'calendar' | 'courses' | 'tasks' }) {
   return (
     <View accessibilityRole="tablist" style={styles.container}>
       <SectionTab
@@ -17,6 +18,11 @@ export function AppSectionTabs({ active }: { active: 'courses' | 'tasks' }) {
         active={active === 'tasks'}
         label="Tasks"
         onPress={() => router.replace(taskRoutes.list)}
+      />
+      <SectionTab
+        active={active === 'calendar'}
+        label="Calendar"
+        onPress={() => router.replace(calendarRoutes.list)}
       />
     </View>
   );

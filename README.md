@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Course Management, and Task Management flows are implemented on Expo SDK 54. Users can register, sign in, restore a saved session, manage personal and course-related tasks and courses, filter and complete tasks, and sign out. Native access tokens are stored with Expo SecureStore. Calendar events, class schedules, files, SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Course Management, Task Management, and Calendar Management flows are implemented on Expo SDK 54. Users can register, sign in, restore a saved session, manage personal and course-related tasks, courses, and events, view event/task-deadline month markers and a selected-day agenda, and sign out. Native access tokens are stored with Expo SecureStore. Class schedules, files, SQLite, notifications, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -16,6 +16,7 @@ The sibling `study-planner-api` repository owns the product and backend planning
 - [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md) documents the implemented mobile session lifecycle.
 - [`docs/COURSES.md`](docs/COURSES.md) documents the implemented mobile Course flow and backend assumptions.
 - [`docs/TASKS.md`](docs/TASKS.md) documents the implemented mobile Task flow and backend assumptions.
+- [`docs/CALENDAR.md`](docs/CALENDAR.md) documents the combined mobile event and task-deadline calendar.
 
 Read those documents before changing product behavior or API integration.
 
@@ -36,14 +37,16 @@ study-planner-mobile/
 |-- assets/images/         Starter icons and images
 |-- components/auth/       Reusable authentication form UI
 |-- components/courses/    Reusable course cards and forms
+|-- components/calendar/   Month calendar, agenda, item cards, legend, and event form
 |-- components/tasks/      Reusable task cards, forms, filters, and chips
 |-- components/ui/         Shared loading, error, and empty states
-|-- contexts/              Authentication, Course, and Task state lifecycles
+|-- contexts/              Authentication, Course, Task, and Calendar state lifecycles
 |-- constants/             Theme constants
 |-- hooks/                 Theme/color-scheme hooks
 |-- lib/api/               Reusable API client and typed backend contracts
 |-- lib/auth/              Token storage and form validation
 |-- lib/courses/           Course form mapping, validation, and routes
+|-- lib/calendar/          Date conversion, event forms, normalization, and routes
 |-- lib/tasks/             Task form, display, filtering, and route logic
 |-- lib/config/            Mobile environment configuration
 |-- docs/                  Mobile implementation documentation
@@ -104,6 +107,16 @@ The current backend does not configure CORS, so browser authentication requests 
 - A task may use “No course.” Due values entered in local device time are converted to ISO UTC; a date without a time uses 23:59 local time.
 - Completion and deletion update displayed state after the server confirms success, and Course data supplies names and codes for selectors and task cards.
 - Every Task request uses the restored JWT through the protected Task provider; HTTP `401` clears the local session.
+
+### Calendar Management flow
+
+- The protected Calendar route displays a dependency-free month grid with distinct event and task-deadline markers and a selected-day agenda.
+- Calendar events are requested only for the visible local month using inclusive `from` and `to` ISO timestamps. Tasks are loaded from the existing Task endpoint and only records with `dueAt` are projected into the calendar.
+- Event and task records remain separate source types: event cards open Calendar Event details, while task deadline cards open the existing Task details route.
+- Add and edit screens share validation for title, optional description/course/location/end/color, required start, optional end, and all-day behavior.
+- Local date/time inputs are converted to ISO UTC timestamps without fixed offsets. API timestamps are displayed in the device timezone.
+- The calendar refreshes on visible-month changes and whenever it regains focus after event creation, editing, or deletion.
+- The month grid uses React Native primitives already included with Expo SDK 54; no calendar dependency was added.
 
 From this repository:
 
