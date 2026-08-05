@@ -64,6 +64,7 @@ export function MonthCalendar({
               <View style={styles.markers}>
                 {marker?.event ? <View style={[styles.marker, styles.eventMarker]} /> : null}
                 {marker?.task ? <View style={[styles.marker, styles.taskMarker]} /> : null}
+                {marker?.classSchedule ? <View style={[styles.marker, styles.classScheduleMarker]} /> : null}
               </View>
             </Pressable>
           );
@@ -81,11 +82,12 @@ function MonthButton({ label, onPress, symbol }: { label: string; onPress: () =>
   );
 }
 
-function buildMarkers(items: CalendarItem[]): Map<string, { event: boolean; task: boolean }> {
-  const markers = new Map<string, { event: boolean; task: boolean }>();
+function buildMarkers(items: CalendarItem[]): Map<string, { event: boolean; task: boolean; classSchedule: boolean }> {
+  const markers = new Map<string, { event: boolean; task: boolean; classSchedule: boolean }>();
   for (const item of items) {
-    const marker = markers.get(item.date) ?? { event: false, task: false };
-    marker[item.sourceType] = true;
+    const marker = markers.get(item.date) ?? { event: false, task: false, classSchedule: false };
+    if (item.sourceType === 'class_schedule') marker.classSchedule = true;
+    else marker[item.sourceType] = true;
     markers.set(item.date, marker);
   }
   return markers;
@@ -106,5 +108,6 @@ const styles = StyleSheet.create({
   marker: { borderRadius: 999, height: 5, width: 5 },
   eventMarker: { backgroundColor: '#7c3aed' },
   taskMarker: { backgroundColor: '#ea580c' },
+  classScheduleMarker: { backgroundColor: '#0f766e' },
   pressed: { opacity: 0.65 },
 });

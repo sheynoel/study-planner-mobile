@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Course Management, Task Management, and Calendar Management flows are implemented on Expo SDK 54. Users can register, sign in, restore a saved session, manage personal and course-related tasks, courses, and events, view event/task-deadline month markers and a selected-day agenda, and sign out. Native access tokens are stored with Expo SecureStore. Class schedules, files, SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Course Management, Task Management, Calendar Management, and Class Schedule Management flows are implemented on Expo SDK 54. Users can manage weekly course meetings and see their locally generated occurrences alongside events and task deadlines in the combined calendar. Native access tokens are stored with Expo SecureStore. Files, SQLite, notifications, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -17,6 +17,7 @@ The sibling `study-planner-api` repository owns the product and backend planning
 - [`docs/COURSES.md`](docs/COURSES.md) documents the implemented mobile Course flow and backend assumptions.
 - [`docs/TASKS.md`](docs/TASKS.md) documents the implemented mobile Task flow and backend assumptions.
 - [`docs/CALENDAR.md`](docs/CALENDAR.md) documents the combined mobile event and task-deadline calendar.
+- [`docs/CLASS_SCHEDULES.md`](docs/CLASS_SCHEDULES.md) documents weekly class management and local calendar occurrence generation.
 
 Read those documents before changing product behavior or API integration.
 
@@ -38,15 +39,17 @@ study-planner-mobile/
 |-- components/auth/       Reusable authentication form UI
 |-- components/courses/    Reusable course cards and forms
 |-- components/calendar/   Month calendar, agenda, item cards, legend, and event form
+|-- components/class-schedules/ Reusable class schedule cards, forms, weekday, and time controls
 |-- components/tasks/      Reusable task cards, forms, filters, and chips
 |-- components/ui/         Shared loading, error, and empty states
-|-- contexts/              Authentication, Course, Task, and Calendar state lifecycles
+|-- contexts/              Authentication, Course, Task, Calendar, and Class Schedule state
 |-- constants/             Theme constants
 |-- hooks/                 Theme/color-scheme hooks
 |-- lib/api/               Reusable API client and typed backend contracts
 |-- lib/auth/              Token storage and form validation
 |-- lib/courses/           Course form mapping, validation, and routes
 |-- lib/calendar/          Date conversion, event forms, normalization, and routes
+|-- lib/class-schedules/   Schedule forms, occurrence generation, and routes
 |-- lib/tasks/             Task form, display, filtering, and route logic
 |-- lib/config/            Mobile environment configuration
 |-- docs/                  Mobile implementation documentation
@@ -95,7 +98,7 @@ The current backend does not configure CORS, so browser authentication requests 
 
 - The protected home route lists only the authenticated user's courses and supports retry, empty, loading, and populated states.
 - Add and edit screens share validated fields for name, code, description, instructor, room, and a predefined color palette.
-- Course details show the complete course record plus non-interactive placeholders for later task, schedule, and file phases.
+- Course details show the complete course record and open the course's Class Schedule flow; Tasks and Files remain placeholders.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
 - Every course request uses the access token already restored by the authentication context; HTTP `401` clears the local session.
 
@@ -110,13 +113,21 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### Calendar Management flow
 
-- The protected Calendar route displays a dependency-free month grid with distinct event and task-deadline markers and a selected-day agenda.
+- The protected Calendar route displays a dependency-free month grid with distinct event, task-deadline, and class-meeting markers and a selected-day agenda.
 - Calendar events are requested only for the visible local month using inclusive `from` and `to` ISO timestamps. Tasks are loaded from the existing Task endpoint and only records with `dueAt` are projected into the calendar.
-- Event and task records remain separate source types: event cards open Calendar Event details, while task deadline cards open the existing Task details route.
+- Event, task, and class records remain separate source types and open their respective detail routes.
 - Add and edit screens share validation for title, optional description/course/location/end/color, required start, optional end, and all-day behavior.
 - Local date/time inputs are converted to ISO UTC timestamps without fixed offsets. API timestamps are displayed in the device timezone.
 - The calendar refreshes on visible-month changes and whenever it regains focus after event creation, editing, or deletion.
 - The month grid uses React Native primitives already included with Expo SDK 54; no calendar dependency was added.
+
+### Class Schedule Management flow
+
+- Course Details opens a course-scoped weekly schedule list with loading, error, retry, empty, and populated states.
+- Add and edit share validation for weekday, strictly increasing local `HH:mm` times, optional room, and an inclusive `YYYY-MM-DD` date range.
+- Duplicate and overlapping meeting conflicts are surfaced using the backend's exact error messages.
+- The combined calendar requests schedules overlapping the visible month and generates weekly occurrences locally; it never creates Calendar Event records for class meetings.
+- Schedule times remain local wall-clock values. They are combined with each occurrence's local date only for display and sorting on that device.
 
 From this repository:
 
@@ -135,7 +146,7 @@ Use the exact Expo SDK 54 documentation when making code changes: <https://docs.
 ## Scope guardrails
 
 - Tasks, events, and files may be personal or course-related.
-- Class schedules always belong to courses.
+- Class schedules always belong to courses and each weekday meeting is stored as a separate weekly schedule record.
 - API contracts come from the backend documentation and implementation, not assumptions in UI code.
 - Access tokens belong in SecureStore on native devices, never SQLite or React component state alone.
 - SQLite will be a later local cache/offline layer; the cloud API remains authoritative across devices.

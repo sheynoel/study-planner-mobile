@@ -41,11 +41,12 @@ export type CalendarEventDetailResponse = CalendarEventResponse;
 export type UpdateCalendarEventResponse = CalendarEventResponse;
 export type DeleteCalendarEventResponse = { data: { message: string } };
 
-export type CalendarItemSourceType = 'event' | 'task';
+export type CalendarItemSourceType = 'event' | 'task' | 'class_schedule';
 
 export type CalendarItem = {
   id: string;
   sourceId: string;
+  scheduleId: string | null;
   sourceType: CalendarItemSourceType;
   title: string;
   date: string;

@@ -7,6 +7,7 @@ export function CalendarLegend() {
     <View accessibilityLabel="Calendar item legend" style={styles.container}>
       <LegendItem color="#7c3aed" label="Event" symbol="E" />
       <LegendItem color="#ea580c" label="Task deadline" symbol="T" />
+      <LegendItem color="#0f766e" label="Class" symbol="C" />
     </View>
   );
 }
@@ -16,7 +17,7 @@ function LegendItem({ color, label, symbol }: { color: string; label: string; sy
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', gap: 16, paddingHorizontal: 20, paddingBottom: 8 },
+  container: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingHorizontal: 20, paddingBottom: 8 },
   item: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   symbol: { alignItems: 'center', borderRadius: 999, height: 20, justifyContent: 'center', width: 20 },
   symbolText: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },

@@ -12,6 +12,7 @@ import { useCourses } from '@/contexts/course-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import type { Course } from '@/lib/api/course.types';
 import { courseRoutes } from '@/lib/courses/routes';
+import { classScheduleRoutes } from '@/lib/class-schedules/routes';
 
 function displayValue(value: string | null): string {
   return value ?? 'Not provided';
@@ -165,10 +166,17 @@ export default function CourseDetailsScreen() {
               description="Course-related assignments and study work will appear here."
               title="Tasks"
             />
-            <FutureSection
-              description="Recurring class meetings will appear here."
-              title="Schedule"
-            />
+            <Pressable
+              accessibilityHint="Opens this course's weekly class schedule"
+              accessibilityRole="button"
+              onPress={() => router.push(classScheduleRoutes.courseList(course.id))}
+              style={({ pressed }) => pressed ? styles.pressedSection : undefined}>
+              <ThemedView style={styles.futureSection} lightColor="#f0fdfa" darkColor="#134e4a">
+                <ThemedText type="subtitle">Schedule</ThemedText>
+                <ThemedText>View and manage recurring weekly class meetings.</ThemedText>
+                <ThemedText type="defaultSemiBold" lightColor="#0f766e" darkColor="#99f6e4">Open class schedule →</ThemedText>
+              </ThemedView>
+            </Pressable>
             <FutureSection
               description="Course documents and uploads will appear here."
               title="Files"
@@ -259,5 +267,8 @@ const styles = StyleSheet.create({
   },
   pressedButton: {
     opacity: 0.8,
+  },
+  pressedSection: {
+    opacity: 0.72,
   },
 });

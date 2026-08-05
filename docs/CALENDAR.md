@@ -1,13 +1,13 @@
 # Mobile Calendar Management
 
-This document records the mobile Calendar Management flow. It consumes the protected NestJS Calendar Event and Task contracts without changing backend models or adding local persistence.
+This document records the mobile Calendar Management flow. It combines protected Calendar Event and Task data with locally expanded Class Schedule occurrences without changing backend models or adding local persistence.
 
 ## Implemented scope
 
 - Typed Calendar Event models, create/update requests, filters, and response envelopes with runtime validation.
 - A protected Calendar provider that loads events for the visible month, loads dated tasks, refreshes after mutations, and handles rejected JWTs through the authentication lifecycle.
-- A normalized UI projection that preserves `event` and `task` source identity.
-- A dependency-free month grid with previous/next month navigation, selected-date behavior, and distinct event/task markers.
+- A normalized UI projection that preserves `event`, `task`, and `class_schedule` source identity.
+- A dependency-free month grid with previous/next month navigation, selected-date behavior, and distinct event/task/class markers.
 - A selected-day agenda containing personal and course-related events and task deadlines.
 - Calendar Event add, detail, edit, and confirmation-based delete routes.
 - Reusable month calendar, agenda, item card, event form, and legend components.
@@ -21,6 +21,7 @@ This document records the mobile Calendar Management flow. It consumes the prote
 /calendar/:id                Calendar event details
 /calendar/:id/edit           Edit calendar event
 /tasks/:id                   Existing Task details route used by deadline cards
+/class-schedules/:id         Class Schedule details used by class occurrences
 ```
 
 All routes remain inside the authenticated Expo Router group. Courses, Tasks, and Calendar are available through the existing protected section switcher.
@@ -30,8 +31,11 @@ All routes remain inside the authenticated Expo Router group. Courses, Tasks, an
 - The visible local month's first instant and last instant are converted to ISO timestamps for `GET /calendar-events?from=...&to=...`.
 - The backend's inclusive overlap behavior includes events that begin before the month and continue into it.
 - `GET /tasks` supplies Task records because the backend has no arbitrary task date-range filter. Mobile drops tasks without `dueAt` and limits normalized deadline items to the visible month.
+- `GET /class-schedules?from=YYYY-MM-DD&to=YYYY-MM-DD` supplies only weekly definitions whose inclusive date ranges overlap the visible month.
+- Mobile clips each schedule to the visible month and its own start/end dates, finds the first matching weekday, and advances in seven-day local-date steps. It emits one stable `class_schedule:<scheduleId>:<date>` item per visible occurrence.
+- Class occurrence generation never writes Calendar Event records and deduplicates by schedule and local date.
 - Multi-day events are projected onto each local calendar date they overlap.
-- Each normalized item retains `sourceType` and `sourceId`, so event items open Calendar Event routes and task items open Task routes.
+- Each normalized item retains `sourceType` and `sourceId`, so event, task, and class items open their respective routes.
 - Course names come from the existing Course provider. Personal records remain first-class and use no synthetic course.
 
 ## Date and time behavior
@@ -41,10 +45,11 @@ All routes remain inside the authenticated Expo Router group. Courses, Tasks, an
 - End date/time is optional and cannot be earlier than the effective start.
 - API timestamps are parsed as instants and displayed with the device's locale and timezone.
 - No manual timezone offsets are used. Shared utilities own parsing, local formatting, month boundaries, and ISO conversion.
+- Class Schedule `startTime` and `endTime` are local wall-clock `HH:mm` strings, not UTC values. Occurrences combine those values with local dates before display; the strings are never parsed as UTC timestamps.
 
 ## Calendar presentation
 
-- Event and task markers use separate colors, while agenda cards also include explicit `EVENT` or `TASK` badges so meaning never depends on color alone.
+- Event, task, and class markers use separate colors, while agenda cards also include explicit `EVENT`, `TASK`, or `CLASS` badges so meaning never depends on color alone.
 - Task cards include priority and status chips. Completed tasks use reduced opacity and struck-through titles; overdue incomplete tasks receive an explicit overdue label.
 - Event cards show local time or all-day status and include location when present.
 - Event display colors accept the backend's optional string contract; only valid six-digit hex colors are used directly as card accents, with a safe fallback otherwise.
@@ -63,6 +68,7 @@ No calendar package was added. The month view uses React Native `View` and `Pres
 - `isAllDay` defaults to `false` and does not change the timestamp field contract.
 - An invalid course returns `INVALID_CALENDAR_EVENT_COURSE`; missing and unowned events return `CALENDAR_EVENT_NOT_FOUND`.
 - Task list has no arbitrary `from`/`to` range filter, so the client must fetch the current user's Task list before projecting dated tasks.
+- Class Schedule list accepts inclusive date-only `from` and `to` filters and returns overlapping weekly schedule definitions, not generated occurrences.
 
 ## Physical Android verification
 
@@ -70,7 +76,7 @@ No calendar package was added. The month view uses React Native `View` and `Pres
 2. Configure `EXPO_PUBLIC_API_URL` with the development computer's LAN IPv4 address and port `3000`.
 3. Keep the Android phone and computer on the same network and allow inbound TCP port `3000` through the firewall.
 4. Start Expo with `npm start`, scan the QR code in Expo Go, and sign in.
-5. Open Calendar and verify month navigation, selected dates, event/task markers, and the empty selected-day agenda.
+5. Open Calendar and verify month navigation, selected dates, event/task/class markers, and the selected-day agenda.
 6. Create personal, course-related, timed, all-day, open-ended, and multi-day events. Confirm validation rejects missing titles and reversed ranges.
 7. Add due dates to personal and course Tasks, then verify their markers and agenda cards open the existing Task details route.
 8. Verify completed and overdue Task cards are visually and textually distinct.
@@ -81,4 +87,4 @@ No calendar package was added. The month view uses React Native `View` and `Pres
 
 ## Deferred work
 
-Recurring events, class schedules, combined class occurrences, Google Calendar synchronization, files, notes, notifications, SQLite, caching, and offline synchronization remain outside this phase.
+Recurring Calendar Events, occurrence overrides, attendance, Google Calendar synchronization, files, notes, notifications, SQLite, caching, and offline synchronization remain outside this phase.

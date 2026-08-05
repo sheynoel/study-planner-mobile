@@ -40,6 +40,10 @@ export function combineLocalDateTime(dateValue: string, timeValue: string): Date
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
 }
 
+export function toLocalWallClockDateTime(dateValue: string, timeValue: string): string | null {
+  return combineLocalDateTime(dateValue, timeValue) ? `${dateValue}T${timeValue}:00` : null;
+}
+
 export function formatTimeInput(value: Date | string): string {
   const date = typeof value === 'string' ? new Date(value) : value;
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;

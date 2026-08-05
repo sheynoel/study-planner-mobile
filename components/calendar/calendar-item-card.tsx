@@ -9,16 +9,17 @@ import { isCalendarTaskOverdue } from '@/lib/calendar/calendar-items';
 
 export function CalendarItemCard({ item, onPress }: { item: CalendarItem; onPress: () => void }) {
   const isTask = item.sourceType === 'task';
+  const isClass = item.sourceType === 'class_schedule';
   const completed = item.status === 'COMPLETED';
   const overdue = isCalendarTaskOverdue(item);
 
   return (
     <ThemedView style={[styles.card, completed ? styles.completed : undefined]} lightColor="#f8fafc" darkColor="#1e293b">
       <View style={[styles.sourceBar, { backgroundColor: safeColor(item) }]} />
-      <Pressable accessibilityHint={`Opens ${isTask ? 'task' : 'event'} details`} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.content, pressed ? styles.pressed : undefined]}>
+      <Pressable accessibilityHint={`Opens ${isTask ? 'task' : isClass ? 'class schedule' : 'event'} details`} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.content, pressed ? styles.pressed : undefined]}>
         <View style={styles.heading}>
-          <View style={[styles.sourceBadge, isTask ? styles.taskBadge : styles.eventBadge]}>
-            <ThemedText style={styles.sourceText}>{isTask ? 'TASK' : 'EVENT'}</ThemedText>
+          <View style={[styles.sourceBadge, isTask ? styles.taskBadge : isClass ? styles.classBadge : styles.eventBadge]}>
+            <ThemedText style={styles.sourceText}>{isTask ? 'TASK' : isClass ? 'CLASS' : 'EVENT'}</ThemedText>
           </View>
           <ThemedText type="subtitle" numberOfLines={2} style={[styles.title, completed ? styles.completedTitle : undefined]}>{item.title}</ThemedText>
         </View>
@@ -41,7 +42,8 @@ function eventTime(item: CalendarItem): string {
 
 function safeColor(item: CalendarItem): string {
   if (item.color && /^#[0-9a-fA-F]{6}$/.test(item.color)) return item.color;
-  return item.sourceType === 'task' ? '#ea580c' : '#7c3aed';
+  if (item.sourceType === 'task') return '#ea580c';
+  return item.sourceType === 'class_schedule' ? '#0f766e' : '#7c3aed';
 }
 
 const styles = StyleSheet.create({
@@ -53,6 +55,7 @@ const styles = StyleSheet.create({
   sourceBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
   eventBadge: { backgroundColor: '#7c3aed' },
   taskBadge: { backgroundColor: '#ea580c' },
+  classBadge: { backgroundColor: '#0f766e' },
   sourceText: { color: '#ffffff', fontSize: 10, fontWeight: '800', lineHeight: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   completed: { opacity: 0.68 },

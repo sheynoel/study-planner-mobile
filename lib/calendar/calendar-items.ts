@@ -1,17 +1,23 @@
 import type { CalendarEvent, CalendarItem } from '@/lib/api/calendar-event.types';
 import type { Course } from '@/lib/api/course.types';
 import type { Task } from '@/lib/api/task.types';
+import type { ClassSchedule } from '@/lib/api/class-schedule.types';
 import { eachLocalDate, toLocalDateKey } from '@/lib/calendar/calendar-date';
+import type { CalendarRange } from '@/lib/calendar/calendar-date';
+import { generateClassScheduleOccurrences } from '@/lib/class-schedules/occurrences';
 
 export function normalizeCalendarItems(
   events: CalendarEvent[],
   tasks: Task[],
   courses: Course[],
+  schedules: ClassSchedule[] = [],
+  range?: CalendarRange,
 ): CalendarItem[] {
   const courseNames = new Map(courses.map((course) => [course.id, course.name]));
   const eventItems = events.flatMap((event) => normalizeEvent(event, courseNames));
   const taskItems = tasks.flatMap((task) => normalizeTask(task, courseNames));
-  return [...eventItems, ...taskItems].sort(compareCalendarItems);
+  const scheduleItems = range ? generateClassScheduleOccurrences(schedules, courses, range) : [];
+  return [...eventItems, ...taskItems, ...scheduleItems].sort(compareCalendarItems);
 }
 
 function normalizeEvent(event: CalendarEvent, courseNames: Map<string, string>): CalendarItem[] {
@@ -20,6 +26,7 @@ function normalizeEvent(event: CalendarEvent, courseNames: Map<string, string>):
   return eachLocalDate(start, end).map((date) => ({
     id: `event:${event.id}:${date}`,
     sourceId: event.id,
+    scheduleId: null,
     sourceType: 'event',
     title: event.title,
     date,
@@ -41,6 +48,7 @@ function normalizeTask(task: Task, courseNames: Map<string, string>): CalendarIt
   return [{
     id: `task:${task.id}:${date}`,
     sourceId: task.id,
+    scheduleId: null,
     sourceType: 'task',
     title: task.title,
     date,

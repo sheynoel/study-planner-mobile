@@ -19,6 +19,7 @@ import { addMonths, getMonthRange, toLocalDateKey } from '@/lib/calendar/calenda
 import { itemsForDate } from '@/lib/calendar/calendar-items';
 import { calendarRoutes } from '@/lib/calendar/routes';
 import { taskRoutes } from '@/lib/tasks/routes';
+import { classScheduleRoutes } from '@/lib/class-schedules/routes';
 
 export default function CalendarScreen() {
   const { logout } = useAuth();
@@ -43,7 +44,9 @@ export default function CalendarScreen() {
   }
 
   function openItem(item: CalendarItem) {
-    router.push(item.sourceType === 'event' ? calendarRoutes.details(item.sourceId) : taskRoutes.details(item.sourceId));
+    if (item.sourceType === 'event') router.push(calendarRoutes.details(item.sourceId));
+    else if (item.sourceType === 'task') router.push(taskRoutes.details(item.sourceId));
+    else router.push(classScheduleRoutes.details(item.sourceId));
   }
 
   async function handleLogout() {

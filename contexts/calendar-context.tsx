@@ -10,6 +10,7 @@ import {
 
 import { useAuth } from '@/contexts/auth-context';
 import { useCourses } from '@/contexts/course-context';
+import { useClassSchedules } from '@/contexts/class-schedule-context';
 import { ApiClientError, getApiErrorMessage } from '@/lib/api/api-client';
 import type {
   CalendarEvent,
@@ -25,6 +26,7 @@ import {
   updateCalendarEvent as updateCalendarEventRequest,
 } from '@/lib/api/calendar-events';
 import type { Task } from '@/lib/api/task.types';
+import type { ClassSchedule } from '@/lib/api/class-schedule.types';
 import { getTasks } from '@/lib/api/tasks';
 import type { CalendarRange } from '@/lib/calendar/calendar-date';
 import { normalizeCalendarItems } from '@/lib/calendar/calendar-items';
@@ -50,8 +52,10 @@ const CalendarContext = createContext<CalendarContextValue | null>(null);
 export function CalendarProvider({ children }: PropsWithChildren) {
   const { accessToken, logout } = useAuth();
   const { courses, loadCourses } = useCourses();
+  const { fetchSchedules } = useClassSchedules();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [schedules, setSchedules] = useState<ClassSchedule[]>([]);
   const [listStatus, setListStatus] = useState<CalendarListStatus>('idle');
   const [listError, setListError] = useState<string | null>(null);
   const activeRange = useRef<CalendarRange | null>(null);
@@ -82,20 +86,22 @@ export function CalendarProvider({ children }: PropsWithChildren) {
     setListStatus('loading');
     setListError(null);
     try {
-      const [eventResponse, taskResponse] = await Promise.all([
+      const [eventResponse, taskResponse, scheduleResponse] = await Promise.all([
         runAuthenticated((token) => getCalendarEvents(token, { from: range.from, to: range.to })),
         runAuthenticated((token) => getTasks(token)),
+        fetchSchedules({ from: range.firstDate, to: range.lastDate }),
         loadCourses(),
       ]);
       setEvents(eventResponse.data.events);
       setTasks(taskResponse.data.tasks.filter((task) => task.dueAt !== null));
+      setSchedules(scheduleResponse);
       setListStatus('success');
     } catch (error) {
       setListError(getApiErrorMessage(error));
       setListStatus('error');
       throw error;
     }
-  }, [loadCourses, runAuthenticated]);
+  }, [fetchSchedules, loadCourses, runAuthenticated]);
 
   const refresh = useCallback(async () => {
     if (!activeRange.current) return;
@@ -138,12 +144,12 @@ export function CalendarProvider({ children }: PropsWithChildren) {
   );
 
   const items = useMemo(() => {
-    const normalized = normalizeCalendarItems(events, tasks, courses);
+    const normalized = normalizeCalendarItems(events, tasks, courses, schedules, displayedRange ?? undefined);
     if (!displayedRange) return normalized;
     return normalized.filter(
       (item) => item.date >= displayedRange.firstDate && item.date <= displayedRange.lastDate,
     );
-  }, [courses, displayedRange, events, tasks]);
+  }, [courses, displayedRange, events, schedules, tasks]);
 
   const value = useMemo(() => ({
     events,
