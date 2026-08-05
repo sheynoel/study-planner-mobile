@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
+import { AppSectionTabs } from '@/components/app-section-tabs';
 import { ErrorBanner } from '@/components/auth/auth-form';
 import { CourseCard } from '@/components/courses/course-card';
 import { ThemedText } from '@/components/themed-text';
@@ -55,6 +56,7 @@ export default function CourseListScreen() {
           subtitle={`Welcome, ${user?.name ?? 'Student'}`}
           title="Courses"
         />
+        <AppSectionTabs active="courses" />
         <ErrorBanner message={logoutError} />
 
         {listStatus === 'idle' || listStatus === 'loading' ? (

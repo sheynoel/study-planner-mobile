@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, and Course Management flows are implemented on Expo SDK 54. Users can register, sign in, restore a saved session, list and manage their courses, and sign out. Native access tokens are stored with Expo SecureStore. Tasks, calendar events, class schedules, files, SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Course Management, and Task Management flows are implemented on Expo SDK 54. Users can register, sign in, restore a saved session, manage personal and course-related tasks and courses, filter and complete tasks, and sign out. Native access tokens are stored with Expo SecureStore. Calendar events, class schedules, files, SQLite, notifications, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -15,6 +15,7 @@ The sibling `study-planner-api` repository owns the product and backend planning
 - `../study-planner-api/docs/TASKS.md`
 - [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md) documents the implemented mobile session lifecycle.
 - [`docs/COURSES.md`](docs/COURSES.md) documents the implemented mobile Course flow and backend assumptions.
+- [`docs/TASKS.md`](docs/TASKS.md) documents the implemented mobile Task flow and backend assumptions.
 
 Read those documents before changing product behavior or API integration.
 
@@ -35,13 +36,15 @@ study-planner-mobile/
 |-- assets/images/         Starter icons and images
 |-- components/auth/       Reusable authentication form UI
 |-- components/courses/    Reusable course cards and forms
+|-- components/tasks/      Reusable task cards, forms, filters, and chips
 |-- components/ui/         Shared loading, error, and empty states
-|-- contexts/              Authentication and course state lifecycles
+|-- contexts/              Authentication, Course, and Task state lifecycles
 |-- constants/             Theme constants
 |-- hooks/                 Theme/color-scheme hooks
 |-- lib/api/               Reusable API client and typed backend contracts
 |-- lib/auth/              Token storage and form validation
 |-- lib/courses/           Course form mapping, validation, and routes
+|-- lib/tasks/             Task form, display, filtering, and route logic
 |-- lib/config/            Mobile environment configuration
 |-- docs/                  Mobile implementation documentation
 |-- scripts/               create-expo-app reset utility
@@ -92,6 +95,15 @@ The current backend does not configure CORS, so browser authentication requests 
 - Course details show the complete course record plus non-interactive placeholders for later task, schedule, and file phases.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
 - Every course request uses the access token already restored by the authentication context; HTTP `401` clears the local session.
+
+### Task Management flow
+
+- The protected Task list shows personal and course-related work together with status, priority, course, due date, and overdue treatment.
+- List filters cover today, upcoming, overdue, completed, course, and priority and use the backend's UTC filter contract.
+- Add and edit screens share validated title, description, course, local due date/time, priority, and status fields.
+- A task may use “No course.” Due values entered in local device time are converted to ISO UTC; a date without a time uses 23:59 local time.
+- Completion and deletion update displayed state after the server confirms success, and Course data supplies names and codes for selectors and task cards.
+- Every Task request uses the restored JWT through the protected Task provider; HTTP `401` clears the local session.
 
 From this repository:
 

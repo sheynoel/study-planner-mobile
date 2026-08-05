@@ -167,7 +167,7 @@ export default function CourseDetailsScreen() {
             />
             <FutureSection
               description="Recurring class meetings will appear here."
-              title="Schedules"
+              title="Schedule"
             />
             <FutureSection
               description="Course documents and uploads will appear here."

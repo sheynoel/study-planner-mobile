@@ -52,4 +52,4 @@ All routes remain inside the authenticated Expo Router group. A missing or expir
 
 ## Deferred work
 
-Tasks, calendar events, class schedules, files, notes, notifications, SQLite, caching, and offline synchronization remain outside this phase.
+Calendar events, class schedules, files, notes, notifications, SQLite, caching, and offline synchronization remain outside this phase. Task Management is documented separately in `docs/TASKS.md`.
