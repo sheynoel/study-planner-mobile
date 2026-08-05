@@ -1,0 +1,180 @@
+import {
+  createContext,
+  type PropsWithChildren,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
+
+import { useAuth } from '@/contexts/auth-context';
+import { ApiClientError, getApiErrorMessage } from '@/lib/api/api-client';
+import {
+  createCourse as createCourseRequest,
+  deleteCourse as deleteCourseRequest,
+  getCourse as getCourseRequest,
+  getCourses as getCoursesRequest,
+  updateCourse as updateCourseRequest,
+} from '@/lib/api/courses';
+import type { Course, CreateCourseRequest, UpdateCourseRequest } from '@/lib/api/course.types';
+
+type CourseListStatus = 'idle' | 'loading' | 'success' | 'error';
+
+type CourseContextValue = {
+  courses: Course[];
+  createCourse: (request: CreateCourseRequest) => Promise<Course>;
+  deleteCourse: (id: string) => Promise<void>;
+  getCachedCourse: (id: string) => Course | undefined;
+  listError: string | null;
+  listStatus: CourseListStatus;
+  loadCourse: (id: string) => Promise<Course>;
+  loadCourses: () => Promise<void>;
+  updateCourse: (id: string, request: UpdateCourseRequest) => Promise<Course>;
+};
+
+const CourseContext = createContext<CourseContextValue | null>(null);
+
+export function CourseProvider({ children }: PropsWithChildren) {
+  const { accessToken, logout } = useAuth();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [listStatus, setListStatus] = useState<CourseListStatus>('idle');
+  const [listError, setListError] = useState<string | null>(null);
+
+  const runAuthenticated = useCallback(
+    async <T,>(request: (accessToken: string) => Promise<T>): Promise<T> => {
+      if (!accessToken) {
+        throw new Error('Your session is unavailable. Please sign in again.');
+      }
+
+      try {
+        return await request(accessToken);
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status === 401) {
+          await logout();
+        }
+
+        throw error;
+      }
+    },
+    [accessToken, logout],
+  );
+
+  const upsertCourse = useCallback((course: Course) => {
+    setCourses((currentCourses) => {
+      const existingIndex = currentCourses.findIndex((candidate) => candidate.id === course.id);
+
+      if (existingIndex === -1) {
+        return [course, ...currentCourses];
+      }
+
+      return currentCourses.map((candidate) =>
+        candidate.id === course.id ? course : candidate,
+      );
+    });
+  }, []);
+
+  const loadCourses = useCallback(async () => {
+    setListStatus('loading');
+    setListError(null);
+
+    try {
+      const response = await runAuthenticated((token) => getCoursesRequest(token));
+      setCourses(response.data.courses);
+      setListStatus('success');
+    } catch (error) {
+      setListError(getApiErrorMessage(error));
+      setListStatus('error');
+      throw error;
+    }
+  }, [runAuthenticated]);
+
+  const loadCourse = useCallback(
+    async (id: string) => {
+      const response = await runAuthenticated((token) => getCourseRequest(token, id));
+      upsertCourse(response.data.course);
+      return response.data.course;
+    },
+    [runAuthenticated, upsertCourse],
+  );
+
+  const createCourse = useCallback(
+    async (request: CreateCourseRequest) => {
+      const response = await runAuthenticated((token) => createCourseRequest(token, request));
+      upsertCourse(response.data.course);
+
+      try {
+        await loadCourses();
+      } catch {
+        // The confirmed create response remains usable if the follow-up list refresh fails.
+      }
+
+      return response.data.course;
+    },
+    [loadCourses, runAuthenticated, upsertCourse],
+  );
+
+  const updateCourse = useCallback(
+    async (id: string, request: UpdateCourseRequest) => {
+      const response = await runAuthenticated((token) => updateCourseRequest(token, id, request));
+      upsertCourse(response.data.course);
+
+      try {
+        return await loadCourse(id);
+      } catch {
+        // Keep the server-confirmed PATCH response when the follow-up detail refresh fails.
+        return response.data.course;
+      }
+    },
+    [loadCourse, runAuthenticated, upsertCourse],
+  );
+
+  const deleteCourse = useCallback(
+    async (id: string) => {
+      await runAuthenticated((token) => deleteCourseRequest(token, id));
+      setCourses((currentCourses) => currentCourses.filter((course) => course.id !== id));
+    },
+    [runAuthenticated],
+  );
+
+  const getCachedCourse = useCallback(
+    (id: string) => courses.find((course) => course.id === id),
+    [courses],
+  );
+
+  const value = useMemo(
+    () => ({
+      courses,
+      createCourse,
+      deleteCourse,
+      getCachedCourse,
+      listError,
+      listStatus,
+      loadCourse,
+      loadCourses,
+      updateCourse,
+    }),
+    [
+      courses,
+      createCourse,
+      deleteCourse,
+      getCachedCourse,
+      listError,
+      listStatus,
+      loadCourse,
+      loadCourses,
+      updateCourse,
+    ],
+  );
+
+  return <CourseContext.Provider value={value}>{children}</CourseContext.Provider>;
+}
+
+export function useCourses(): CourseContextValue {
+  const context = useContext(CourseContext);
+
+  if (!context) {
+    throw new Error('useCourses must be used inside CourseProvider.');
+  }
+
+  return context;
+}

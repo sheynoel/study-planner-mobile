@@ -2,11 +2,20 @@ import { getApiBaseUrl } from '@/lib/config/environment';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
-type ApiClientErrorKind = 'timeout' | 'network' | 'http' | 'invalid-response';
+export type ApiClientErrorKind = 'timeout' | 'network' | 'http' | 'invalid-response';
 
 type RequestOptions = {
   acceptedStatuses?: readonly number[];
+  headers?: HeadersInit;
   timeoutMs?: number;
+};
+
+type ApiErrorEnvelope = {
+  error: {
+    code: string;
+    message: string;
+    details?: string[];
+  };
 };
 
 export class ApiClientError extends Error {
@@ -14,6 +23,8 @@ export class ApiClientError extends Error {
     message: string,
     readonly kind: ApiClientErrorKind,
     readonly status?: number,
+    readonly code?: string,
+    readonly details?: readonly string[],
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -27,7 +38,43 @@ export class ApiClient {
   ) {}
 
   get<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    return this.request<T>(path, { method: 'GET' }, options);
+    return this.request<T>(path, { method: 'GET', headers: options.headers }, options);
+  }
+
+  post<TResponse, TBody = never>(
+    path: string,
+    body?: TBody,
+    options: RequestOptions = {},
+  ): Promise<TResponse> {
+    return this.request<TResponse>(
+      path,
+      {
+        body: body === undefined ? undefined : JSON.stringify(body),
+        headers: options.headers,
+        method: 'POST',
+      },
+      options,
+    );
+  }
+
+  patch<TResponse, TBody>(
+    path: string,
+    body: TBody,
+    options: RequestOptions = {},
+  ): Promise<TResponse> {
+    return this.request<TResponse>(
+      path,
+      {
+        body: JSON.stringify(body),
+        headers: options.headers,
+        method: 'PATCH',
+      },
+      options,
+    );
+  }
+
+  delete<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    return this.request<T>(path, { method: 'DELETE', headers: options.headers }, options);
   }
 
   private async request<T>(
@@ -44,14 +91,17 @@ export class ApiClient {
     }, timeoutMs);
 
     let response: Response;
+    const headers = new Headers(init.headers);
+    headers.set('Accept', 'application/json');
+
+    if (init.body !== undefined) {
+      headers.set('Content-Type', 'application/json');
+    }
 
     try {
       response = await fetch(this.createUrl(path), {
         ...init,
-        headers: {
-          Accept: 'application/json',
-          ...init.headers,
-        },
+        headers,
         signal: controller.signal,
       });
     } catch (error) {
@@ -73,10 +123,15 @@ export class ApiClient {
     const acceptedStatuses = options.acceptedStatuses ?? [200];
 
     if (!acceptedStatuses.includes(response.status)) {
+      const errorEnvelope = await this.readErrorEnvelope(response);
+
       throw new ApiClientError(
-        `The API returned HTTP ${response.status}. Verify the configured URL and backend status.`,
+        errorEnvelope?.error.message ??
+          `The API returned HTTP ${response.status}. Verify the configured URL and backend status.`,
         'http',
         response.status,
+        errorEnvelope?.error.code,
+        errorEnvelope?.error.details,
       );
     }
 
@@ -93,6 +148,46 @@ export class ApiClient {
   private createUrl(path: string): string {
     return `${this.baseUrl}/${path.replace(/^\/+/, '')}`;
   }
+
+  private async readErrorEnvelope(response: Response): Promise<ApiErrorEnvelope | null> {
+    try {
+      const value = (await response.json()) as unknown;
+
+      if (typeof value !== 'object' || value === null || !('error' in value)) {
+        return null;
+      }
+
+      const error = (value as { error?: unknown }).error;
+
+      if (typeof error !== 'object' || error === null) {
+        return null;
+      }
+
+      const candidate = error as Partial<ApiErrorEnvelope['error']>;
+
+      if (typeof candidate.code !== 'string' || typeof candidate.message !== 'string') {
+        return null;
+      }
+
+      if (
+        candidate.details !== undefined &&
+        (!Array.isArray(candidate.details) ||
+          !candidate.details.every((detail) => typeof detail === 'string'))
+      ) {
+        return null;
+      }
+
+      return {
+        error: {
+          code: candidate.code,
+          message: candidate.message,
+          details: candidate.details,
+        },
+      };
+    } catch {
+      return null;
+    }
+  }
 }
 
 let apiClient: ApiClient | undefined;
@@ -100,4 +195,12 @@ let apiClient: ApiClient | undefined;
 export function getApiClient(): ApiClient {
   apiClient ??= new ApiClient(getApiBaseUrl());
   return apiClient;
+}
+
+export function getApiErrorMessage(error: unknown): string {
+  if (error instanceof ApiClientError && error.details?.length) {
+    return `${error.message} ${error.details.join(' ')}`;
+  }
+
+  return error instanceof Error ? error.message : 'An unexpected error occurred.';
 }
