@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Course Management, Task Management, Calendar Management, and Class Schedule Management flows are implemented on Expo SDK 54. Users can manage weekly course meetings and see their locally generated occurrences alongside events and task deadlines in the combined calendar. Native access tokens are stored with Expo SecureStore. Files, SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive Bento Student Workspace: bounded dashboard previews, grouped tasks, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -18,6 +18,10 @@ The sibling `study-planner-api` repository owns the product and backend planning
 - [`docs/TASKS.md`](docs/TASKS.md) documents the implemented mobile Task flow and backend assumptions.
 - [`docs/CALENDAR.md`](docs/CALENDAR.md) documents the combined mobile event and task-deadline calendar.
 - [`docs/CLASS_SCHEDULES.md`](docs/CLASS_SCHEDULES.md) documents weekly class management and local calendar occurrence generation.
+- [`docs/FILES.md`](docs/FILES.md) documents mobile picking, multipart upload, authenticated download, and metadata management.
+- [`docs/DASHBOARD.md`](docs/DASHBOARD.md) documents dashboard aggregation, local date ranges, partial failures, and refresh behavior.
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) documents the shared visual tokens, components, accessibility rules, and five-tab navigation constraint.
+- [`docs/UI_REDESIGN.md`](docs/UI_REDESIGN.md) records the redesign audit, migration boundaries, and completed Bento workspace coverage.
 
 Read those documents before changing product behavior or API integration.
 
@@ -39,17 +43,23 @@ study-planner-mobile/
 |-- components/auth/       Reusable authentication form UI
 |-- components/courses/    Reusable course cards and forms
 |-- components/calendar/   Month calendar, agenda, item cards, legend, and event form
+|-- components/dashboard/  Home summaries, section states, and concise cross-feature cards
 |-- components/class-schedules/ Reusable class schedule cards, forms, weekday, and time controls
+|-- components/files/      Reusable file cards, forms, filters, picker, and download UI
 |-- components/tasks/      Reusable task cards, forms, filters, and chips
-|-- components/ui/         Shared loading, error, and empty states
-|-- contexts/              Authentication, Course, Task, Calendar, and Class Schedule state
-|-- constants/             Theme constants
+|-- components/settings/   Appearance controls and digital student profile card
+|-- components/ui/         Shared buttons, cards, selectors, section headers, dialogs, and async states
+|-- contexts/              Authentication and planner feature state lifecycles
+|-- constants/             Central color, type, spacing, radius, shadow, and layout tokens
 |-- hooks/                 Theme/color-scheme hooks
 |-- lib/api/               Reusable API client and typed backend contracts
 |-- lib/auth/              Token storage and form validation
+|-- lib/appearance/        Local theme preference persistence
 |-- lib/courses/           Course form mapping, validation, and routes
 |-- lib/calendar/          Date conversion, event forms, normalization, and routes
 |-- lib/class-schedules/   Schedule forms, occurrence generation, and routes
+|-- lib/files/             Picker, display, download/share, and route logic
+|-- lib/dashboard/         Dashboard service orchestration and local projections
 |-- lib/tasks/             Task form, display, filtering, and route logic
 |-- lib/config/            Mobile environment configuration
 |-- docs/                  Mobile implementation documentation
@@ -96,16 +106,17 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### Course Management flow
 
-- The protected home route lists only the authenticated user's courses and supports retry, empty, loading, and populated states.
+- The protected `/courses` route lists only the authenticated user's courses and supports retry, empty, loading, and populated states.
 - Add and edit screens share validated fields for name, code, description, instructor, room, and a predefined color palette.
-- Course details show the complete course record and open the course's Class Schedule flow; Tasks and Files remain placeholders.
+- Course Details is a scoped workspace with Overview, Tasks, Materials, and Schedule tabs. It requests only records belonging to that course and keeps course uploads inside Materials.
+- The Courses grid includes a Personal Library entry for files without a course.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
 - Every course request uses the access token already restored by the authentication context; HTTP `401` clears the local session.
 
 ### Task Management flow
 
-- The protected Task list shows personal and course-related work together with status, priority, course, due date, and overdue treatment.
-- List filters cover today, upcoming, overdue, completed, course, and priority and use the backend's UTC filter contract.
+- The protected Task list uses Today, Upcoming, All, and Completed views; compact Due Today and Overdue summaries; and Overdue, Today, Tomorrow, Later This Week, Later, No Due Date, and Completed groups.
+- A filter sheet composes course UUID, personal, priority, status, and due selections. Search, the local This Week projection, and sorting are layered over supported backend filters without adding API parameters.
 - Add and edit screens share validated title, description, course, local due date/time, priority, and status fields.
 - A task may use “No course.” Due values entered in local device time are converted to ISO UTC; a date without a time uses 23:59 local time.
 - Completion and deletion update displayed state after the server confirms success, and Course data supplies names and codes for selectors and task cards.
@@ -129,6 +140,25 @@ The current backend does not configure CORS, so browser authentication requests 
 - The combined calendar requests schedules overlapping the visible month and generates weekly occurrences locally; it never creates Calendar Event records for class meetings.
 - Schedule times remain local wall-clock values. They are combined with each occurrence's local date only for display and sorting on that device.
 
+### File Management flow
+
+- Settings > File Library lists all personal and course-related files. Course Details > Materials scopes the same library to one course, while Courses > Personal Library shows only files with `courseId: null`.
+- Shared material filters provide All, PDF, Slides, Documents, and Images categories. Slides maps to PPT/PPTX, Documents to DOC/DOCX/TXT, and Images to the supported image extensions.
+- Upload uses Expo DocumentPicker with `copyToCacheDirectory`, keeps the original URI/name/MIME type, and sends native `multipart/form-data` without manually setting a boundary or reading Base64 into JavaScript.
+- The picker and form enforce the documented 25 MiB default before upload; backend validation messages remain authoritative.
+- Details support authenticated download into Expo's temporary cache, progress display, and opening the platform share sheet through Expo Sharing.
+- Downloaded files are explicit temporary transfers, not an offline cache or synchronization layer.
+- Rename/course assignment, course removal, and deletion refresh relevant File state after server confirmation.
+
+### Home Dashboard flow
+
+- `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Settings. File routes remain protected and are reached contextually from Courses, Home, Quick Add, and Settings.
+- Home loads Courses, Tasks, today's Calendar Events and Class Schedules, and Files through their existing typed services.
+- Class occurrences reuse the Calendar's bounded local recurrence projection; manual events and classes are sorted together by start time.
+- Incomplete tasks are split into local Tasks Due Today and the next seven local dates, while recent Files are sorted newest first.
+- Each source settles independently, so successful sections remain visible with section-specific Retry states when another source fails.
+- Focus refreshes, pull-to-refresh, and confirmed task completion prevent stale dashboard sections after feature mutations.
+
 From this repository:
 
 ```bash
@@ -137,6 +167,7 @@ npm run android
 npm run ios
 npm run web
 npm run lint
+npm test
 npx tsc --noEmit
 npx expo-doctor
 ```
@@ -150,4 +181,4 @@ Use the exact Expo SDK 54 documentation when making code changes: <https://docs.
 - API contracts come from the backend documentation and implementation, not assumptions in UI code.
 - Access tokens belong in SecureStore on native devices, never SQLite or React component state alone.
 - SQLite will be a later local cache/offline layer; the cloud API remains authoritative across devices.
-- File contents will live in future cloud object storage, while PostgreSQL stores metadata.
+- The backend currently uses development-only local file bytes and PostgreSQL metadata; mobile never receives internal storage paths.

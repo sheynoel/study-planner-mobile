@@ -12,17 +12,22 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 - Local form validation matching backend maximum lengths and hexadecimal color requirements.
 - Confirmation-based deletion with immediate removal from displayed state.
 - List refresh after create, detail refresh after edit, and focus refreshes when returning to Course screens.
+- A two-column course-folder grid showing pending Tasks, File counts, and the next class when today’s dashboard projection contains one.
+- Course Details workspace tabs for Overview, Tasks, Materials, and Schedule.
+- A full-width Personal Library entry for files without a Course.
 
 ## Route flow
 
 ```text
-/                         Course list
+/courses                  Course list
 /courses/new              Add course
 /courses/:id              Course details
 /courses/:id/edit         Edit course
 ```
 
-All routes remain inside the authenticated Expo Router group. A missing or expired token is handled through the existing authentication guard and session cleanup.
+All routes remain inside the authenticated Expo Router group. Courses are available from the five-item bottom navigation, while a missing or expired token is handled through the existing authentication guard and session cleanup.
+
+Course Details requests `GET /tasks?courseId=:id`, `GET /files?courseId=:id`, and `GET /class-schedules?courseId=:id`; its tabs do not request unrelated course records. Overview shows the nearest deadline, next generated class occurrence, recent materials, and a schedule preview. Materials reuses the shared File Library behavior with the Course fixed to its UUID.
 
 ## Backend contract assumptions
 

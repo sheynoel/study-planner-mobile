@@ -10,6 +10,8 @@ import {
 
 import { ErrorBanner, FormField, SubmitButton } from '@/components/auth/auth-form';
 import { ThemedText } from '@/components/themed-text';
+import { DesignTokens } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import {
   COURSE_COLORS,
@@ -30,6 +32,7 @@ export function CourseForm({
   onSubmit: (values: CourseFormValues) => Promise<void>;
   submitLabel: string;
 }) {
+  const { colors } = useAppearance();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<CourseFormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
@@ -135,16 +138,17 @@ export function CourseForm({
                   onPress={() => updateField('color', color)}
                   style={({ pressed }) => [
                     styles.colorOption,
-                    isSelected ? styles.selectedColorOption : undefined,
+                    isSelected ? { borderColor: colors.primary } : undefined,
                     pressed ? styles.pressedColor : undefined,
                   ]}>
                   <View style={[styles.colorSwatch, { backgroundColor: color }]} />
+                  {isSelected ? <ThemedText style={styles.selectedMark}>✓</ThemedText> : null}
                 </Pressable>
               );
             })}
           </View>
           {errors.color ? (
-            <ThemedText lightColor="#b91c1c" darkColor="#fecaca" style={styles.fieldError}>
+            <ThemedText style={[styles.fieldError, { color: colors.dangerText }]}>
               {errors.color}
             </ThemedText>
           ) : null}
@@ -166,8 +170,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 18,
-    padding: 20,
+    gap: DesignTokens.layout.formGap,
+    padding: DesignTokens.layout.screenPadding,
     paddingBottom: 40,
   },
   multilineInput: {
@@ -190,9 +194,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 48,
   },
-  selectedColorOption: {
-    borderColor: '#0a7ea4',
-  },
   pressedColor: {
     opacity: 0.65,
   },
@@ -201,6 +202,7 @@ const styles = StyleSheet.create({
     height: 36,
     width: 36,
   },
+  selectedMark: { color: '#ffffff', fontWeight: '800', position: 'absolute' },
   fieldError: {
     fontSize: 14,
     lineHeight: 20,

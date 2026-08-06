@@ -1,13 +1,14 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { PlannerColors } from '@/constants/theme';
 
 export function CalendarLegend() {
   return (
     <View accessibilityLabel="Calendar item legend" style={styles.container}>
-      <LegendItem color="#7c3aed" label="Event" symbol="E" />
-      <LegendItem color="#ea580c" label="Task deadline" symbol="T" />
-      <LegendItem color="#0f766e" label="Class" symbol="C" />
+      <LegendItem color={PlannerColors.event} label="Event" symbol="E" />
+      <LegendItem color={PlannerColors.task} label="Task deadline" symbol="T" />
+      <LegendItem color={PlannerColors.classSchedule} label="Class" symbol="C" />
     </View>
   );
 }

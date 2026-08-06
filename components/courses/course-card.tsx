@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { AppCard } from '@/components/ui/app-card';
+import { DesignTokens } from '@/constants/theme';
 import type { Course } from '@/lib/api/course.types';
 
 function detailValue(value: string | null): string {
@@ -16,7 +17,7 @@ export function CourseCard({ course, onPress }: { course: Course; onPress: () =>
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.pressable, pressed ? styles.pressed : undefined]}>
-      <ThemedView style={styles.card} lightColor="#f8fafc" darkColor="#1e293b">
+      <AppCard padded={false} style={styles.card}>
         <View style={[styles.colorBar, { backgroundColor: course.color }]} />
         <View style={styles.content}>
           <View style={styles.headingRow}>
@@ -29,20 +30,20 @@ export function CourseCard({ course, onPress }: { course: Course; onPress: () =>
           <ThemedText numberOfLines={1}>Instructor: {detailValue(course.instructor)}</ThemedText>
           <ThemedText numberOfLines={1}>Room: {detailValue(course.room)}</ThemedText>
         </View>
-      </ThemedView>
+      </AppCard>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   pressable: {
-    borderRadius: 16,
+    borderRadius: DesignTokens.radius.lg,
   },
   pressed: {
     opacity: 0.78,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: DesignTokens.radius.lg,
     flexDirection: 'row',
     minHeight: 148,
     overflow: 'hidden',
@@ -52,8 +53,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 5,
-    padding: 18,
+    gap: DesignTokens.spacing.xs,
+    padding: DesignTokens.layout.cardPadding,
   },
   headingRow: {
     alignItems: 'flex-start',

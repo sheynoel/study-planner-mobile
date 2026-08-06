@@ -8,8 +8,9 @@ This document records the mobile portion of roadmap phase 5. It consumes the pro
 - A protected Task provider that sources the JWT from the authentication context and owns displayed Task state.
 - Task list, add, details, and edit routes within the authenticated Expo Router group.
 - Combined personal and course-related display using Course names and codes from the existing Course provider.
-- Reusable Task card, form, filters, status chip, and priority chip components plus existing loading, error, and empty states.
-- All, today, upcoming, overdue, completed, course, and priority filtering.
+- Reusable summary cards, grouped sections, filter and sort sheets, Task card, form, status chip, and priority chip components plus existing loading, error, and empty states.
+- Today, Upcoming, All, and Completed primary views plus course UUID/personal, priority, status, due, and search filtering.
+- Due-date, priority, recently-created, course, and alphabetical sorting.
 - Client validation for title, description, local due date/time, course, status, and priority.
 - Completion with duplicate-request protection, editing with server refresh, and confirmation-based deletion.
 
@@ -22,7 +23,9 @@ This document records the mobile portion of roadmap phase 5. It consumes the pro
 /tasks/:id/edit           Edit task
 ```
 
-The Course and Task list screens include a small section switcher. Authentication still owns the only logged-out/logged-in navigation boundary.
+The Task list is available through the five-item authenticated bottom navigation. It defaults to grouped Today, then can display Overdue, Today, Tomorrow, Later This Week, Later, No Due Date, and Completed sections as the selected filters allow.
+
+Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` values remain server filters. Search, Personal, This Week, and presentation sorting are applied locally to the server result because the backend has no corresponding query parameters. The filter sheet never sends the `personal` or `this_week` UI values to the API.
 
 ## Date and time behavior
 
@@ -49,7 +52,7 @@ The Course and Task list screens include a small section switcher. Authenticatio
 2. Configure `EXPO_PUBLIC_API_URL` with the computer's LAN IPv4 address and port `3000`.
 3. Keep the phone and computer on the same network and allow inbound TCP port `3000` through the firewall.
 4. Start Expo with `npm start`, scan the QR code in Expo Go, and sign in.
-5. Open Tasks from the section switcher and verify loading, empty, Add Task, and retry behavior.
+5. Open Tasks from the bottom navigation and verify loading, empty, Add Task, and retry behavior.
 6. Create a personal task, then create a course-related task and confirm the selector shows Course name and code.
 7. Enter invalid title/date/time values and confirm validation; create valid dated tasks and confirm local display.
 8. Exercise every quick, course, and priority filter and verify overdue treatment.

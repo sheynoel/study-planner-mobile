@@ -1,13 +1,13 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
 import { ClassScheduleCard } from '@/components/class-schedules/class-schedule-card';
-import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/async-state';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { useClassSchedules } from '@/contexts/class-schedule-context';
 import { useCourses } from '@/contexts/course-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
@@ -46,10 +46,10 @@ export default function CourseScheduleListScreen() {
           schedules.length === 0 ? <EmptyState actionLabel="Add Class" description="Add this course's first weekly meeting." onAction={() => router.push(classScheduleRoutes.add(course.id))} title="No class meetings" /> :
           <ScrollView contentContainerStyle={styles.content}>{schedules.map((schedule) => <ClassScheduleCard course={course} key={schedule.id} onPress={() => router.push(classScheduleRoutes.details(schedule.id))} schedule={schedule} />)}</ScrollView>
         ) : null}
-        {listStatus === 'success' && schedules.length > 0 && courseId ? <View style={styles.addContainer}><Pressable accessibilityRole="button" onPress={() => router.push(classScheduleRoutes.add(courseId))} style={({ pressed }) => [styles.addButton, pressed ? styles.pressed : undefined]}><ThemedText type="defaultSemiBold" lightColor="#ffffff" darkColor="#ffffff">+ Add Class</ThemedText></Pressable></View> : null}
+        {listStatus === 'success' && schedules.length > 0 && courseId ? <FloatingActionButton bottom={24} label="Add class" onPress={() => router.push(classScheduleRoutes.add(courseId))} /> : null}
       </SafeAreaView>
     </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({ screen: { flex: 1 }, safeArea: { flex: 1 }, content: { gap: 12, padding: 20, paddingBottom: 100 }, addContainer: { bottom: 24, position: 'absolute', right: 20 }, addButton: { backgroundColor: '#0a7ea4', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 14 }, pressed: { opacity: 0.75 } });
+const styles = StyleSheet.create({ screen: { flex: 1 }, safeArea: { flex: 1 }, content: { gap: 12, padding: 20, paddingBottom: 100 } });

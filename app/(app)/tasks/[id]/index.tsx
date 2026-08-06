@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
@@ -9,6 +9,10 @@ import { TaskPriorityChip, TaskStatusChip } from '@/components/tasks/task-chips'
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ErrorState, LoadingState } from '@/components/ui/async-state';
+import { AppButton } from '@/components/ui/app-button';
+import { BentoCard } from '@/components/ui/bento-card';
+import { showDestructiveConfirmation } from '@/components/ui/confirmation-dialog';
+import { useAppearance } from '@/contexts/appearance-context';
 import { useCourses } from '@/contexts/course-context';
 import { useTasks } from '@/contexts/task-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
@@ -17,6 +21,7 @@ import { formatTaskDate, isTaskOverdue } from '@/lib/tasks/task-display';
 import { taskRoutes } from '@/lib/tasks/routes';
 
 export default function TaskDetailsScreen() {
+  const { colors } = useAppearance();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const taskId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { getCachedCourse, loadCourses } = useCourses();
@@ -76,15 +81,7 @@ export default function TaskDetailsScreen() {
   }
 
   function confirmDelete() {
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm('Delete this task permanently?')) void performDelete();
-      return;
-    }
-
-    Alert.alert('Delete task?', 'This action cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => void performDelete() },
-    ]);
+    showDestructiveConfirmation({ title: 'Delete task?', message: 'This action cannot be undone.', onConfirm: () => void performDelete() });
   }
 
   const course = task?.courseId ? getCachedCourse(task.courseId) : undefined;
@@ -104,7 +101,7 @@ export default function TaskDetailsScreen() {
 
         {task ? (
           <ScrollView contentContainerStyle={styles.content}>
-            <ThemedView style={styles.hero} lightColor="#e0f2fe" darkColor="#0c4a6e">
+            <BentoCard style={[styles.hero, { borderLeftColor: colors.primary }]} tone="accent">
               <ThemedText type="title" style={task.status === 'COMPLETED' ? styles.completedTitle : undefined}>
                 {task.title}
               </ThemedText>
@@ -113,43 +110,27 @@ export default function TaskDetailsScreen() {
                 <TaskPriorityChip priority={task.priority} />
               </View>
               {isTaskOverdue(task) ? (
-                <ThemedText type="defaultSemiBold" lightColor="#b91c1c" darkColor="#fecaca">
-                  Overdue
+                <ThemedText type="defaultSemiBold" style={{ color: colors.overdue }}>
+                  ! Overdue
                 </ThemedText>
               ) : null}
-            </ThemedView>
+            </BentoCard>
 
-            <ThemedView style={styles.detailsCard} lightColor="#f8fafc" darkColor="#1e293b">
-              <DetailRow label="Description" value={task.description ?? 'Not provided'} />
-              <Divider />
-              <DetailRow label="Course" value={course ? `${course.name}${course.code ? ` (${course.code})` : ''}` : task.courseId ? 'Course unavailable' : 'Personal task'} />
-              <Divider />
-              <DetailRow label="Due" value={formatTaskDate(task.dueAt)} />
-              <Divider />
-              <DetailRow label="Completed" value={task.completedAt ? formatTaskDate(task.completedAt) : 'Not completed'} />
-            </ThemedView>
+            <BentoCard style={styles.detailsCard}>
+              <DetailRow label="Description" mutedColor={colors.textSecondary} value={task.description ?? 'Not provided'} />
+              <Divider color={colors.border} />
+              <DetailRow label="Course" mutedColor={colors.textSecondary} value={course ? `${course.name}${course.code ? ` (${course.code})` : ''}` : task.courseId ? 'Course unavailable' : 'Personal task'} />
+              <Divider color={colors.border} />
+              <DetailRow label="Due" mutedColor={colors.textSecondary} value={formatTaskDate(task.dueAt)} />
+              <Divider color={colors.border} />
+              <DetailRow label="Completed" mutedColor={colors.textSecondary} value={task.completedAt ? formatTaskDate(task.completedAt) : 'Not completed'} />
+            </BentoCard>
 
             <ErrorBanner message={actionError ?? loadError} />
             {task.status !== 'COMPLETED' ? (
-              <Pressable
-                accessibilityRole="button"
-                disabled={isCompleting}
-                onPress={() => void handleComplete()}
-                style={({ pressed }) => [styles.completeButton, isCompleting ? styles.disabled : undefined, pressed && !isCompleting ? styles.pressed : undefined]}>
-                <ThemedText type="defaultSemiBold" lightColor="#ffffff" darkColor="#ffffff">
-                  {isCompleting ? 'Completing task...' : 'Mark complete'}
-                </ThemedText>
-              </Pressable>
+              <AppButton label={isCompleting ? 'Completing task...' : 'Mark complete'} loading={isCompleting} onPress={() => void handleComplete()} />
             ) : null}
-            <Pressable
-              accessibilityRole="button"
-              disabled={isDeleting}
-              onPress={confirmDelete}
-              style={({ pressed }) => [styles.deleteButton, isDeleting ? styles.disabled : undefined, pressed && !isDeleting ? styles.pressed : undefined]}>
-              <ThemedText type="defaultSemiBold" lightColor="#ffffff" darkColor="#ffffff">
-                {isDeleting ? 'Deleting task...' : 'Delete task'}
-              </ThemedText>
-            </Pressable>
+            <AppButton label={isDeleting ? 'Deleting task...' : 'Delete task'} loading={isDeleting} onPress={confirmDelete} variant="danger" />
           </ScrollView>
         ) : null}
       </SafeAreaView>
@@ -157,25 +138,20 @@ export default function TaskDetailsScreen() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return <View style={styles.detailRow}><ThemedText type="defaultSemiBold" style={styles.detailLabel}>{label}</ThemedText><ThemedText selectable>{value}</ThemedText></View>;
+function DetailRow({ label, mutedColor, value }: { label: string; mutedColor: string; value: string }) {
+  return <View style={styles.detailRow}><ThemedText type="defaultSemiBold" style={{ color: mutedColor }}>{label}</ThemedText><ThemedText selectable>{value}</ThemedText></View>;
 }
 
-function Divider() { return <View style={styles.divider} />; }
+function Divider({ color }: { color: string }) { return <View style={[styles.divider, { backgroundColor: color }]} />; }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   safeArea: { flex: 1 },
   content: { gap: 16, padding: 20, paddingBottom: 40 },
-  hero: { borderRadius: 20, gap: 12, padding: 24 },
+  hero: { borderLeftWidth: 4, gap: 12, padding: 24 },
   completedTitle: { textDecorationLine: 'line-through' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   detailsCard: { borderRadius: 16, gap: 14, padding: 20 },
   detailRow: { gap: 4 },
-  detailLabel: { color: '#64748b' },
-  divider: { backgroundColor: '#94a3b8', height: StyleSheet.hairlineWidth, opacity: 0.45 },
-  completeButton: { alignItems: 'center', backgroundColor: '#0a7ea4', borderRadius: 12, minHeight: 50, padding: 13 },
-  deleteButton: { alignItems: 'center', backgroundColor: '#b91c1c', borderRadius: 12, minHeight: 50, padding: 13 },
-  disabled: { opacity: 0.55 },
-  pressed: { opacity: 0.8 },
+  divider: { height: StyleSheet.hairlineWidth },
 });

@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ErrorBanner, FormField, SubmitButton } from '@/components/auth/auth-form';
 import { ThemedText } from '@/components/themed-text';
+import { ChoiceChip } from '@/components/ui/choice-chip';
+import { DesignTokens } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 import type { Course } from '@/lib/api/course.types';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import type { TaskPriority, TaskStatus } from '@/lib/api/task.types';
@@ -29,6 +32,7 @@ export function TaskForm({
   onSubmit: (values: TaskFormValues) => Promise<void>;
   submitLabel: string;
 }) {
+  const { colors } = useAppearance();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
@@ -84,13 +88,13 @@ export function TaskForm({
         />
 
         <SelectionField label="Course (optional)">
-          <Choice
+          <ChoiceChip
             label="No course"
             selected={values.courseId === null}
             onPress={() => updateField('courseId', null)}
           />
           {courses.map((course) => (
-            <Choice
+            <ChoiceChip
               key={course.id}
               label={`${course.name}${course.code ? ` (${course.code})` : ''}`}
               selected={values.courseId === course.id}
@@ -123,13 +127,13 @@ export function TaskForm({
             />
           </View>
         </View>
-        <ThemedText lightColor="#64748b" darkColor="#94a3b8" style={styles.hint}>
+        <ThemedText style={[styles.hint, { color: colors.textSecondary }]}>
           Time uses the device&apos;s local timezone. A date without a time is due at 23:59.
         </ThemedText>
 
         <SelectionField label="Priority">
           {TASK_PRIORITIES.map((priority) => (
-            <Choice
+            <ChoiceChip
               key={priority}
               label={TASK_PRIORITY_LABELS[priority]}
               selected={values.priority === priority}
@@ -140,7 +144,7 @@ export function TaskForm({
 
         <SelectionField label="Status">
           {TASK_STATUSES.map((status) => (
-            <Choice
+            <ChoiceChip
               key={status}
               label={TASK_STATUS_LABELS[status]}
               selected={values.status === status}
@@ -169,41 +173,12 @@ function SelectionField({ children, label }: { children: React.ReactNode; label:
   );
 }
 
-function Choice({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.choice,
-        selected ? styles.selectedChoice : undefined,
-        pressed ? styles.pressedChoice : undefined,
-      ]}>
-      <ThemedText
-        lightColor={selected ? '#ffffff' : undefined}
-        darkColor={selected ? '#ffffff' : undefined}>
-        {label}
-      </ThemedText>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { gap: 18, padding: 20, paddingBottom: 40 },
+  content: { gap: DesignTokens.layout.formGap, padding: DesignTokens.layout.screenPadding, paddingBottom: 40 },
   multilineInput: { minHeight: 110 },
   dateRow: { flexDirection: 'row', gap: 12 },
   hint: { fontSize: 13, lineHeight: 18, marginTop: -10 },
-  selectionField: { gap: 8 },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: {
-    borderColor: '#0a7ea4',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-  },
-  selectedChoice: { backgroundColor: '#0a7ea4' },
-  pressedChoice: { opacity: 0.7 },
+  selectionField: { gap: DesignTokens.spacing.sm },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: DesignTokens.spacing.sm },
 });

@@ -11,6 +11,9 @@ import {
 
 import { ErrorBanner, FormField, SubmitButton } from '@/components/auth/auth-form';
 import { ThemedText } from '@/components/themed-text';
+import { ChoiceChip } from '@/components/ui/choice-chip';
+import { DesignTokens } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 import type { Course } from '@/lib/api/course.types';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import {
@@ -34,6 +37,7 @@ export function CalendarEventForm({
   onSubmit: (values: CalendarEventFormValues) => Promise<void>;
   submitLabel: string;
 }) {
+  const { colors } = useAppearance();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<CalendarEventFormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
@@ -68,8 +72,8 @@ export function CalendarEventForm({
         <FormField error={errors.location} label="Location (optional)" onChangeText={(value) => updateField('location', value)} placeholder="Library room 204" value={values.location} />
 
         <SelectionField label="Course (optional)">
-          <Choice label="No course" selected={values.courseId === null} onPress={() => updateField('courseId', null)} />
-          {courses.map((course) => <Choice key={course.id} label={`${course.name}${course.code ? ` (${course.code})` : ''}`} selected={values.courseId === course.id} onPress={() => updateField('courseId', course.id)} />)}
+          <ChoiceChip label="No course" selected={values.courseId === null} onPress={() => updateField('courseId', null)} />
+          {courses.map((course) => <ChoiceChip key={course.id} label={`${course.name}${course.code ? ` (${course.code})` : ''}`} selected={values.courseId === course.id} onPress={() => updateField('courseId', course.id)} />)}
         </SelectionField>
 
         <ToggleRow label="All-day event" value={values.isAllDay} onValueChange={(value) => updateField('isAllDay', value)} />
@@ -82,17 +86,17 @@ export function CalendarEventForm({
           <View style={styles.flex}><FormField autoCapitalize="none" error={errors.endDate} keyboardType="numbers-and-punctuation" label="End date" onChangeText={(value) => updateField('endDate', value)} placeholder="YYYY-MM-DD" value={values.endDate} /></View>
           {!values.isAllDay ? <View style={styles.flex}><FormField autoCapitalize="none" error={errors.endTime} keyboardType="numbers-and-punctuation" label="End time" onChangeText={(value) => updateField('endTime', value)} placeholder="HH:mm" value={values.endTime} /></View> : null}
         </View> : null}
-        <ThemedText style={styles.hint} lightColor="#64748b" darkColor="#94a3b8">
+        <ThemedText style={[styles.hint, { color: colors.textSecondary }]}>
           Dates and times use this device&apos;s timezone and are sent to the API as ISO timestamps.
         </ThemedText>
 
         <SelectionField label="Color (optional)">
-          <Choice label="Default" selected={values.color === null} onPress={() => updateField('color', null)} />
+          <ChoiceChip label="Default" selected={values.color === null} onPress={() => updateField('color', null)} />
           {CALENDAR_EVENT_COLORS.map((color) => (
-            <Pressable accessibilityLabel={`Select color ${color}`} accessibilityRole="button" accessibilityState={{ selected: values.color === color }} key={color} onPress={() => updateField('color', color)} style={({ pressed }) => [styles.colorChoice, { backgroundColor: color }, values.color === color ? styles.selectedColor : undefined, pressed ? styles.pressed : undefined]} />
+            <Pressable accessibilityLabel={`Select color ${color}`} accessibilityRole="button" accessibilityState={{ selected: values.color === color }} key={color} onPress={() => updateField('color', color)} style={({ pressed }) => [styles.colorChoice, { backgroundColor: color }, values.color === color ? [styles.selectedColor, { borderColor: colors.background, outlineColor: colors.primary }] : undefined, pressed ? styles.pressed : undefined]} />
           ))}
         </SelectionField>
-        {errors.color ? <ThemedText lightColor="#b91c1c" darkColor="#fecaca">{errors.color}</ThemedText> : null}
+        {errors.color ? <ThemedText style={{ color: colors.dangerText }}>{errors.color}</ThemedText> : null}
         <SubmitButton disabled={isSubmitting} label={submitLabel} loadingLabel={loadingLabel} onPress={() => void handleSubmit()} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -103,26 +107,20 @@ function SelectionField({ children, label }: { children: React.ReactNode; label:
   return <View style={styles.selectionField}><ThemedText type="defaultSemiBold">{label}</ThemedText><View style={styles.choices}>{children}</View></View>;
 }
 
-function Choice({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={({ pressed }) => [styles.choice, selected ? styles.selectedChoice : undefined, pressed ? styles.pressed : undefined]}><ThemedText lightColor={selected ? '#ffffff' : undefined} darkColor={selected ? '#ffffff' : undefined}>{label}</ThemedText></Pressable>;
-}
-
 function ToggleRow({ label, onValueChange, value }: { label: string; onValueChange: (value: boolean) => void; value: boolean }) {
   return <View style={styles.toggleRow}><ThemedText type="defaultSemiBold">{label}</ThemedText><Switch accessibilityLabel={label} onValueChange={onValueChange} value={value} /></View>;
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { gap: 18, padding: 20, paddingBottom: 40 },
+  content: { gap: DesignTokens.layout.formGap, padding: DesignTokens.layout.screenPadding, paddingBottom: 40 },
   multiline: { minHeight: 100 },
   dateRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },
   hint: { fontSize: 13, lineHeight: 18, marginTop: -8 },
   selectionField: { gap: 8 },
   choices: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { borderColor: '#0a7ea4', borderRadius: 999, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 8 },
-  selectedChoice: { backgroundColor: '#0a7ea4' },
   colorChoice: { borderRadius: 999, height: 36, width: 36 },
-  selectedColor: { borderColor: '#ffffff', borderWidth: 3, outlineColor: '#0a7ea4', outlineWidth: 2 },
+  selectedColor: { borderWidth: 3, outlineWidth: 2 },
   toggleRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   pressed: { opacity: 0.68 },
 });

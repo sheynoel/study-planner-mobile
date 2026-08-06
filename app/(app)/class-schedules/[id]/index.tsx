@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
@@ -9,6 +9,10 @@ import { titleCase } from '@/components/class-schedules/class-schedule-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ErrorState, LoadingState } from '@/components/ui/async-state';
+import { AppButton } from '@/components/ui/app-button';
+import { BentoCard } from '@/components/ui/bento-card';
+import { showDestructiveConfirmation } from '@/components/ui/confirmation-dialog';
+import { useAppearance } from '@/contexts/appearance-context';
 import { useClassSchedules } from '@/contexts/class-schedule-context';
 import { useCourses } from '@/contexts/course-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
@@ -20,6 +24,7 @@ import { classScheduleRoutes } from '@/lib/class-schedules/routes';
 export default function ClassScheduleDetailsScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const scheduleId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { colors } = useAppearance();
   const { deleteSchedule, getCachedSchedule, loadSchedule } = useClassSchedules();
   const { getCachedCourse, loadCourse } = useCourses();
   const [schedule, setSchedule] = useState<ClassSchedule | null>(() => scheduleId ? getCachedSchedule(scheduleId) ?? null : null);
@@ -35,6 +40,7 @@ export default function ClassScheduleDetailsScreen() {
     catch (reason) { setError(getApiErrorMessage(reason)); }
     finally { setLoading(false); }
   }, [loadCourse, loadSchedule, scheduleId]);
+
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
 
   async function performDelete() {
@@ -43,13 +49,32 @@ export default function ClassScheduleDetailsScreen() {
     try { await deleteSchedule(schedule.id); router.replace(classScheduleRoutes.courseList(schedule.courseId)); }
     catch (reason) { setError(getApiErrorMessage(reason)); setDeleting(false); }
   }
+
   function confirmDelete() {
-    if (Platform.OS === 'web') { if (typeof window !== 'undefined' && window.confirm('Delete this class meeting?')) void performDelete(); return; }
-    Alert.alert('Delete class?', 'This removes the weekly meeting from the course and calendar.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => void performDelete() }]);
+    showDestructiveConfirmation({ title: 'Delete class?', message: 'This removes the weekly meeting from the course and calendar.', onConfirm: () => void performDelete() });
   }
 
-  return <ThemedView style={styles.screen}><SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}><AppHeader onBack={() => router.back()} onRightAction={scheduleId ? () => router.push(classScheduleRoutes.edit(scheduleId)) : undefined} rightActionLabel={scheduleId ? 'Edit' : undefined} title="Class details" />{loading && !schedule ? <LoadingState label="Loading class details..." /> : null}{error && !schedule ? <ErrorState message={error} onRetry={() => void refresh()} /> : null}{schedule ? <ScrollView contentContainerStyle={styles.content}><ThemedView style={styles.hero} lightColor="#f0fdfa" darkColor="#134e4a"><View style={[styles.color, { backgroundColor: course?.color ?? '#0f766e' }]} /><View><ThemedText type="title">{course?.name ?? 'Class meeting'}</ThemedText><ThemedText>{course?.code ?? 'No course code'}</ThemedText></View></ThemedView><ThemedView style={styles.card} lightColor="#f8fafc" darkColor="#1e293b"><Row label="Weekday" value={titleCase(schedule.weekday)} /><Row label="Time" value={`${schedule.startTime} – ${schedule.endTime}`} /><Row label="Room" value={schedule.room ?? 'Not provided'} /><Row label="First date" value={formatLocalDate(schedule.startDate)} /><Row label="Last date" value={formatLocalDate(schedule.endDate)} /></ThemedView><ErrorBanner message={error} /><Pressable accessibilityRole="button" disabled={deleting} onPress={confirmDelete} style={({ pressed }) => [styles.delete, deleting ? styles.disabled : undefined, pressed && !deleting ? styles.pressed : undefined]}><ThemedText type="defaultSemiBold" lightColor="#ffffff" darkColor="#ffffff">{deleting ? 'Deleting class...' : 'Delete class'}</ThemedText></Pressable></ScrollView> : null}</SafeAreaView></ThemedView>;
+  return <ThemedView style={styles.screen}><SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <AppHeader onBack={() => router.back()} onRightAction={scheduleId ? () => router.push(classScheduleRoutes.edit(scheduleId)) : undefined} rightActionLabel={scheduleId ? 'Edit' : undefined} title="Class details" />
+    {loading && !schedule ? <LoadingState label="Loading class details..." /> : null}
+    {error && !schedule ? <ErrorState message={error} onRetry={() => void refresh()} /> : null}
+    {schedule ? <ScrollView contentContainerStyle={styles.content}>
+      <BentoCard style={styles.hero} tone="accent"><View style={[styles.color, { backgroundColor: course?.color ?? colors.primary }]} /><View style={styles.flex}><ThemedText type="title">{course?.name ?? 'Class meeting'}</ThemedText><ThemedText style={{ color: colors.textSecondary }}>{course?.code ?? 'No course code'}</ThemedText></View></BentoCard>
+      <BentoCard style={styles.card}>
+        <Row color={colors.textSecondary} label="Weekday" value={titleCase(schedule.weekday)} />
+        <Row color={colors.textSecondary} label="Time" value={`${schedule.startTime} – ${schedule.endTime}`} />
+        <Row color={colors.textSecondary} label="Room" value={schedule.room ?? 'Not provided'} />
+        <Row color={colors.textSecondary} label="First date" value={formatLocalDate(schedule.startDate)} />
+        <Row color={colors.textSecondary} label="Last date" value={formatLocalDate(schedule.endDate)} />
+      </BentoCard>
+      <ErrorBanner message={error} />
+      <AppButton label={deleting ? 'Deleting class...' : 'Delete class'} loading={deleting} onPress={confirmDelete} variant="danger" />
+    </ScrollView> : null}
+  </SafeAreaView></ThemedView>;
 }
 
-function Row({ label, value }: { label: string; value: string }) { return <View style={styles.row}><ThemedText type="defaultSemiBold" lightColor="#64748b" darkColor="#94a3b8">{label}</ThemedText><ThemedText selectable>{value}</ThemedText></View>; }
-const styles = StyleSheet.create({ screen: { flex: 1 }, safeArea: { flex: 1 }, content: { gap: 16, padding: 20, paddingBottom: 40 }, hero: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 14, padding: 20 }, color: { borderRadius: 16, height: 32, width: 32 }, card: { borderRadius: 16, gap: 16, padding: 20 }, row: { gap: 4 }, delete: { alignItems: 'center', backgroundColor: '#b91c1c', borderRadius: 12, minHeight: 50, padding: 14 }, disabled: { opacity: 0.55 }, pressed: { opacity: 0.8 } });
+function Row({ color, label, value }: { color: string; label: string; value: string }) {
+  return <View style={styles.row}><ThemedText type="defaultSemiBold" style={{ color }}>{label}</ThemedText><ThemedText selectable>{value}</ThemedText></View>;
+}
+
+const styles = StyleSheet.create({ screen: { flex: 1 }, safeArea: { flex: 1 }, content: { gap: 16, padding: 20, paddingBottom: 40 }, hero: { alignItems: 'center', flexDirection: 'row', gap: 14, padding: 20 }, color: { borderRadius: 16, height: 32, width: 32 }, flex: { flex: 1, gap: 3 }, card: { gap: 16, padding: 20 }, row: { gap: 4 } });

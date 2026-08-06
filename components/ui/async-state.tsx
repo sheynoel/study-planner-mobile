@@ -1,12 +1,16 @@
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { DesignTokens } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 
 export function LoadingState({ label = 'Loading...' }: { label?: string }) {
+  const { colors } = useAppearance();
   return (
     <View style={styles.stateContainer}>
-      <ActivityIndicator size="large" />
+      <ActivityIndicator color={colors.primary} size="large" />
       <ThemedText type="defaultSemiBold">{label}</ThemedText>
     </View>
   );
@@ -19,13 +23,14 @@ export function ErrorState({
   message: string;
   onRetry: () => void;
 }) {
+  const { colors } = useAppearance();
   return (
     <View style={styles.stateContainer}>
-      <ThemedView style={styles.errorBox} lightColor="#fef2f2" darkColor="#450a0a">
-        <ThemedText type="subtitle" lightColor="#991b1b" darkColor="#fecaca">
+      <ThemedView style={[styles.errorBox, { backgroundColor: colors.dangerSurface }]}>
+        <ThemedText type="subtitle" style={{ color: colors.dangerText }}>
           Something went wrong
         </ThemedText>
-        <ThemedText lightColor="#991b1b" darkColor="#fecaca" style={styles.centeredText}>
+        <ThemedText style={[styles.centeredText, { color: colors.dangerText }]}>
           {message}
         </ThemedText>
       </ThemedView>
@@ -66,24 +71,7 @@ export function ActionButton({
   variant?: 'primary' | 'danger' | 'secondary';
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.actionButton,
-        variant === 'danger' ? styles.dangerButton : undefined,
-        variant === 'secondary' ? styles.secondaryButton : undefined,
-        disabled ? styles.disabledButton : undefined,
-        pressed && !disabled ? styles.pressedButton : undefined,
-      ]}>
-      <ThemedText
-        type="defaultSemiBold"
-        lightColor={variant === 'secondary' ? '#0a7ea4' : '#ffffff'}
-        darkColor={variant === 'secondary' ? '#7dd3fc' : '#ffffff'}>
-        {label}
-      </ThemedText>
-    </Pressable>
+    <AppButton disabled={disabled} label={label} onPress={onPress} style={styles.actionButton} variant={variant} />
   );
 }
 
@@ -91,43 +79,23 @@ const styles = StyleSheet.create({
   stateContainer: {
     alignItems: 'center',
     flex: 1,
-    gap: 16,
+    gap: DesignTokens.spacing.lg,
     justifyContent: 'center',
-    padding: 24,
+    padding: DesignTokens.layout.screenPadding,
   },
   centeredText: {
     textAlign: 'center',
   },
   errorBox: {
     alignItems: 'center',
-    borderRadius: 16,
-    gap: 8,
+    borderRadius: DesignTokens.radius.lg,
+    gap: DesignTokens.spacing.sm,
     maxWidth: 520,
-    padding: 20,
+    padding: DesignTokens.spacing.xl,
     width: '100%',
   },
   actionButton: {
     alignItems: 'center',
-    backgroundColor: '#0a7ea4',
-    borderRadius: 12,
-    justifyContent: 'center',
-    minHeight: 46,
     minWidth: 120,
-    paddingHorizontal: 20,
-    paddingVertical: 11,
-  },
-  dangerButton: {
-    backgroundColor: '#b91c1c',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderColor: '#0a7ea4',
-    borderWidth: 1,
-  },
-  disabledButton: {
-    opacity: 0.55,
-  },
-  pressedButton: {
-    opacity: 0.82,
   },
 });

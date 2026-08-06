@@ -1,9 +1,7 @@
 import type { PropsWithChildren, ReactNode } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -14,6 +12,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { AppCard } from '@/components/ui/app-card';
+import { DesignTokens } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export function AuthScreen({
@@ -22,6 +24,7 @@ export function AuthScreen({
   subtitle,
   title,
 }: PropsWithChildren<{ footer: ReactNode; subtitle: string; title: string }>) {
+  const { colors } = useAppearance();
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea}>
@@ -31,13 +34,17 @@ export function AuthScreen({
           <ScrollView
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled">
-            <View style={styles.heading}>
-              <ThemedText type="title">{title}</ThemedText>
-              <ThemedText>{subtitle}</ThemedText>
+            <View style={[styles.brandMark, { backgroundColor: colors.primaryContainer }]}>
+              <ThemedText style={[styles.brandMarkText, { color: colors.primary }]}>SP</ThemedText>
             </View>
-            <ThemedView style={styles.card} lightColor="#f8fafc" darkColor="#1e293b">
+            <View style={styles.heading}>
+              <ThemedText style={[styles.eyebrow, { color: colors.primary }]}>STUDY PLANNER</ThemedText>
+              <ThemedText type="title">{title}</ThemedText>
+              <ThemedText style={{ color: colors.textSecondary }}>{subtitle}</ThemedText>
+            </View>
+            <AppCard style={styles.card}>
               {children}
-            </ThemedView>
+            </AppCard>
             <View style={styles.footer}>{footer}</View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -53,24 +60,27 @@ export function FormField({
   ...inputProps
 }: TextInputProps & { error?: string; label: string }) {
   const textColor = useThemeColor({}, 'text');
-  const backgroundColor = useThemeColor({ light: '#ffffff', dark: '#0f172a' }, 'background');
+  const backgroundColor = useThemeColor({}, 'surface');
+  const borderColor = useThemeColor({}, 'border');
+  const placeholderTextColor = useThemeColor({}, 'textMuted');
+  const { colors } = useAppearance();
 
   return (
     <View style={styles.field}>
       <ThemedText type="defaultSemiBold">{label}</ThemedText>
       <TextInput
         accessibilityLabel={label}
-        placeholderTextColor="#64748b"
+        placeholderTextColor={placeholderTextColor}
         style={[
           styles.input,
-          { backgroundColor, color: textColor },
-          error ? styles.inputError : undefined,
+          { backgroundColor, borderColor, color: textColor },
+          error ? { borderColor: colors.danger } : undefined,
           style,
         ]}
         {...inputProps}
       />
       {error ? (
-        <ThemedText lightColor="#b91c1c" darkColor="#fecaca" style={styles.fieldError}>
+        <ThemedText style={[styles.fieldError, { color: colors.dangerText }]}>
           {error}
         </ThemedText>
       ) : null}
@@ -79,13 +89,17 @@ export function FormField({
 }
 
 export function ErrorBanner({ message }: { message?: string | null }) {
+  const { colors } = useAppearance();
   if (!message) {
     return null;
   }
 
   return (
-    <ThemedView style={styles.errorBanner} lightColor="#fef2f2" darkColor="#450a0a">
-      <ThemedText lightColor="#991b1b" darkColor="#fecaca">
+    <ThemedView style={[styles.errorBanner, { backgroundColor: colors.dangerSurface }]} accessibilityRole="alert">
+      <ThemedText type="defaultSemiBold" style={{ color: colors.dangerText }}>
+        Error
+      </ThemedText>
+      <ThemedText style={{ color: colors.dangerText }}>
         {message}
       </ThemedText>
     </ThemedView>
@@ -104,26 +118,13 @@ export function SubmitButton({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.submitButton,
-        disabled ? styles.submitButtonDisabled : undefined,
-        pressed && !disabled ? styles.submitButtonPressed : undefined,
-      ]}>
-      {disabled ? <ActivityIndicator color="#ffffff" /> : null}
-      <ThemedText type="defaultSemiBold" lightColor="#ffffff" darkColor="#ffffff">
-        {disabled ? loadingLabel : label}
-      </ThemedText>
-    </Pressable>
+    <AppButton disabled={disabled} label={disabled ? loadingLabel : label} loading={disabled} onPress={onPress} />
   );
 }
 
 export const authFormStyles = StyleSheet.create({
   form: {
-    gap: 16,
+    gap: DesignTokens.spacing.lg,
   },
   footerText: {
     textAlign: 'center',
@@ -143,57 +144,39 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    gap: 24,
-    padding: 24,
+    gap: DesignTokens.layout.sectionGap,
+    padding: DesignTokens.layout.screenPadding,
   },
   heading: {
-    gap: 8,
+    gap: DesignTokens.spacing.sm,
   },
+  brandMark: { alignItems: 'center', borderRadius: DesignTokens.radius.lg, height: 54, justifyContent: 'center', width: 54 },
+  brandMarkText: { fontSize: 18, fontWeight: '800', letterSpacing: 1 },
+  eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 1.6 },
   card: {
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: DesignTokens.radius.xl,
   },
   footer: {
     alignItems: 'center',
   },
   field: {
-    gap: 6,
+    gap: DesignTokens.spacing.sm,
   },
   input: {
-    borderColor: '#94a3b8',
-    borderRadius: 12,
+    borderRadius: DesignTokens.radius.md,
     borderWidth: 1,
     fontSize: 16,
-    minHeight: 50,
+    minHeight: DesignTokens.size.inputHeight,
     paddingHorizontal: 14,
     paddingVertical: 12,
-  },
-  inputError: {
-    borderColor: '#dc2626',
   },
   fieldError: {
     fontSize: 14,
     lineHeight: 20,
   },
   errorBanner: {
-    borderRadius: 12,
-    padding: 14,
-  },
-  submitButton: {
-    alignItems: 'center',
-    backgroundColor: '#0a7ea4',
-    borderRadius: 12,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-    minHeight: 50,
-    paddingHorizontal: 20,
-    paddingVertical: 13,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonPressed: {
-    opacity: 0.82,
+    borderRadius: DesignTokens.radius.md,
+    gap: DesignTokens.spacing.xs,
+    padding: DesignTokens.spacing.md,
   },
 });

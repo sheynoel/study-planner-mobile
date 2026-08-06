@@ -57,6 +57,18 @@ export class ApiClient {
     );
   }
 
+  postForm<TResponse>(
+    path: string,
+    body: FormData,
+    options: RequestOptions = {},
+  ): Promise<TResponse> {
+    return this.request<TResponse>(
+      path,
+      { body, headers: options.headers, method: 'POST' },
+      options,
+    );
+  }
+
   patch<TResponse, TBody>(
     path: string,
     body: TBody,
@@ -94,7 +106,7 @@ export class ApiClient {
     const headers = new Headers(init.headers);
     headers.set('Accept', 'application/json');
 
-    if (init.body !== undefined) {
+    if (init.body !== undefined && !(init.body instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
     }
 
@@ -188,6 +200,32 @@ export class ApiClient {
       return null;
     }
   }
+}
+
+export function createApiClientErrorFromBody(status: number, body: string): ApiClientError {
+  try {
+    const parsed = JSON.parse(body) as unknown;
+    if (typeof parsed === 'object' && parsed !== null && 'error' in parsed) {
+      const error = (parsed as { error?: unknown }).error;
+      if (typeof error === 'object' && error !== null) {
+        const candidate = error as { code?: unknown; message?: unknown; details?: unknown };
+        if (typeof candidate.code === 'string' && typeof candidate.message === 'string') {
+          return new ApiClientError(
+            candidate.message,
+            'http',
+            status,
+            candidate.code,
+            Array.isArray(candidate.details)
+              ? candidate.details.filter((detail): detail is string => typeof detail === 'string')
+              : undefined,
+          );
+        }
+      }
+    }
+  } catch {
+    // Fall through to the generic HTTP error.
+  }
+  return new ApiClientError(`The API returned HTTP ${status}.`, 'http', status);
 }
 
 let apiClient: ApiClient | undefined;

@@ -1,24 +1,45 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { ThemeProvider, type Theme } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { AuthLoadingScreen } from '@/components/auth/auth-loading-screen';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AppearanceProvider, useAppearance } from '@/contexts/appearance-context';
 
 export const unstable_settings = {
   anchor: '(auth)',
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  return <AppearanceProvider><ThemedRoot /></AppearanceProvider>;
+}
+
+function ThemedRoot() {
+  const { colors, resolvedMode } = useAppearance();
+  const navigationTheme: Theme = {
+    dark: resolvedMode === 'dark',
+    colors: {
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.danger,
+    },
+    fonts: {
+      regular: { fontFamily: 'System', fontWeight: '400' },
+      medium: { fontFamily: 'System', fontWeight: '500' },
+      bold: { fontFamily: 'System', fontWeight: '700' },
+      heavy: { fontFamily: 'System', fontWeight: '800' },
+    },
+  };
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={navigationTheme}>
         <RootNavigator />
-        <StatusBar style="auto" />
+        <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
     </AuthProvider>
   );

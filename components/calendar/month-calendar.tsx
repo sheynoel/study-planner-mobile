@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import type { CalendarItem } from '@/lib/api/calendar-event.types';
 import { getMonthDays, monthTitle } from '@/lib/calendar/calendar-date';
+import { DesignTokens, PlannerColors } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -21,6 +23,7 @@ export function MonthCalendar({
   onSelectDate: (date: string) => void;
   selectedDate: string;
 }) {
+  const { colors } = useAppearance();
   const markers = buildMarkers(items);
   const days = getMonthDays(month);
 
@@ -33,7 +36,7 @@ export function MonthCalendar({
       </View>
       <View style={styles.weekRow}>
         {WEEKDAYS.map((weekday) => (
-          <ThemedText key={weekday} style={styles.weekday} lightColor="#64748b" darkColor="#94a3b8">
+          <ThemedText key={weekday} style={[styles.weekday, { color: colors.textMuted }]}>
             {weekday}
           </ThemedText>
         ))}
@@ -51,20 +54,17 @@ export function MonthCalendar({
               onPress={() => onSelectDate(day.date)}
               style={({ pressed }) => [
                 styles.day,
-                selected ? styles.selectedDay : undefined,
-                day.isToday && !selected ? styles.today : undefined,
+                selected ? { backgroundColor: colors.primary } : undefined,
+                day.isToday && !selected ? { borderColor: colors.primary, borderWidth: 1 } : undefined,
                 pressed ? styles.pressed : undefined,
               ]}>
-              <ThemedText
-                style={styles.dayNumber}
-                lightColor={selected ? '#ffffff' : day.isCurrentMonth ? '#0f172a' : '#94a3b8'}
-                darkColor={selected ? '#ffffff' : day.isCurrentMonth ? '#f8fafc' : '#64748b'}>
+              <ThemedText style={[styles.dayNumber, { color: selected ? colors.primaryText : day.isCurrentMonth ? colors.text : colors.textMuted }]}>
                 {day.dayNumber}
               </ThemedText>
               <View style={styles.markers}>
-                {marker?.event ? <View style={[styles.marker, styles.eventMarker]} /> : null}
-                {marker?.task ? <View style={[styles.marker, styles.taskMarker]} /> : null}
-                {marker?.classSchedule ? <View style={[styles.marker, styles.classScheduleMarker]} /> : null}
+                {marker?.event ? <View style={[styles.marker, { backgroundColor: PlannerColors.event }]} /> : null}
+                {marker?.task ? <View style={[styles.marker, { backgroundColor: PlannerColors.task }]} /> : null}
+                {marker?.classSchedule ? <View style={[styles.marker, { backgroundColor: PlannerColors.classSchedule }]} /> : null}
               </View>
             </Pressable>
           );
@@ -75,9 +75,10 @@ export function MonthCalendar({
 }
 
 function MonthButton({ label, onPress, symbol }: { label: string; onPress: () => void; symbol: string }) {
+  const { colors } = useAppearance();
   return (
     <Pressable accessibilityLabel={label} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.monthButton, pressed ? styles.pressed : undefined]}>
-      <ThemedText type="title" lightColor="#0a7ea4" darkColor="#7dd3fc">{symbol}</ThemedText>
+      <ThemedText type="title" style={{ color: colors.primary }}>{symbol}</ThemedText>
     </Pressable>
   );
 }
@@ -94,20 +95,15 @@ function buildMarkers(items: CalendarItem[]): Map<string, { event: boolean; task
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 8, paddingHorizontal: 16, paddingBottom: 8 },
+  container: { gap: DesignTokens.spacing.sm, paddingHorizontal: DesignTokens.layout.cardPadding, paddingBottom: DesignTokens.spacing.sm },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   monthButton: { alignItems: 'center', minHeight: 44, minWidth: 44, justifyContent: 'center' },
   weekRow: { flexDirection: 'row' },
   weekday: { flex: 1, fontSize: 12, fontWeight: '600', textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   day: { alignItems: 'center', borderRadius: 10, height: 46, justifyContent: 'center', paddingVertical: 3, width: '14.2857%' },
-  selectedDay: { backgroundColor: '#0a7ea4' },
-  today: { borderColor: '#0a7ea4', borderWidth: 1 },
   dayNumber: { fontSize: 14, lineHeight: 19 },
   markers: { flexDirection: 'row', gap: 3, height: 5 },
   marker: { borderRadius: 999, height: 5, width: 5 },
-  eventMarker: { backgroundColor: '#7c3aed' },
-  taskMarker: { backgroundColor: '#ea580c' },
-  classScheduleMarker: { backgroundColor: '#0f766e' },
   pressed: { opacity: 0.65 },
 });

@@ -1,74 +1,34 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { FloatingQuickAdd } from '@/components/ui/floating-quick-add';
+import { DesignTokens, Shadows } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 import { calendarRoutes } from '@/lib/calendar/routes';
 import { courseRoutes } from '@/lib/courses/routes';
 import { taskRoutes } from '@/lib/tasks/routes';
 
-export function AppSectionTabs({ active }: { active: 'calendar' | 'courses' | 'tasks' }) {
-  return (
-    <View accessibilityRole="tablist" style={styles.container}>
-      <SectionTab
-        active={active === 'courses'}
-        label="Courses"
-        onPress={() => router.replace(courseRoutes.list)}
-      />
-      <SectionTab
-        active={active === 'tasks'}
-        label="Tasks"
-        onPress={() => router.replace(taskRoutes.list)}
-      />
-      <SectionTab
-        active={active === 'calendar'}
-        label="Calendar"
-        onPress={() => router.replace(calendarRoutes.list)}
-      />
-    </View>
-  );
+type Section = 'home' | 'calendar' | 'courses' | 'settings' | 'tasks';
+const TABS: readonly { icon: keyof typeof Ionicons.glyphMap; label: string; section: Section; onPress: () => void }[] = [
+  { section: 'home', label: 'Home', icon: 'home-outline', onPress: () => router.replace('/') },
+  { section: 'calendar', label: 'Calendar', icon: 'calendar-outline', onPress: () => router.replace(calendarRoutes.list) },
+  { section: 'tasks', label: 'Tasks', icon: 'checkbox-outline', onPress: () => router.replace(taskRoutes.list) },
+  { section: 'courses', label: 'Courses', icon: 'folder-open-outline', onPress: () => router.replace(courseRoutes.list) },
+  { section: 'settings', label: 'Settings', icon: 'settings-outline', onPress: () => router.replace('/settings') },
+];
+
+export function AppSectionTabs({ active }: { active: Section }) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useAppearance();
+  return <><View accessibilityRole="tablist" style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.outline, paddingBottom: Math.max(insets.bottom, 8) }]}>{TABS.map((tab) => <SectionTab active={active === tab.section} icon={tab.icon} key={tab.section} label={tab.label} onPress={tab.onPress} />)}</View><FloatingQuickAdd /></>;
 }
 
-function SectionTab({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.tab,
-        active ? styles.activeTab : undefined,
-        pressed ? styles.pressed : undefined,
-      ]}>
-      <ThemedText
-        type="defaultSemiBold"
-        lightColor={active ? '#ffffff' : '#0a7ea4'}
-        darkColor={active ? '#ffffff' : '#7dd3fc'}>
-        {label}
-      </ThemedText>
-    </Pressable>
-  );
+function SectionTab({ active, icon, label, onPress }: { active: boolean; icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  const { colors } = useAppearance();
+  return <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.tab, active ? { backgroundColor: colors.primaryContainer } : undefined, pressed ? styles.pressed : undefined]}><Ionicons color={active ? colors.primary : colors.textSecondary} name={active ? icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap : icon} size={DesignTokens.icon.md} /><ThemedText style={[styles.label, { color: active ? colors.primary : colors.textSecondary }]}>{label}</ThemedText></Pressable>;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  tab: {
-    alignItems: 'center',
-    borderColor: '#0a7ea4',
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-  },
-  activeTab: {
-    backgroundColor: '#0a7ea4',
-  },
-  pressed: {
-    opacity: 0.72,
-  },
-});
+const styles = StyleSheet.create({ container: { borderTopWidth: StyleSheet.hairlineWidth, bottom: 0, flexDirection: 'row', gap: DesignTokens.spacing.xs, left: 0, paddingHorizontal: DesignTokens.spacing.sm, paddingTop: DesignTokens.spacing.sm, position: 'absolute', right: 0, zIndex: 20, ...Shadows }, tab: { alignItems: 'center', borderRadius: DesignTokens.radius.md, flex: 1, gap: 2, justifyContent: 'center', minHeight: 52, paddingHorizontal: 2, paddingVertical: DesignTokens.spacing.xs }, label: { fontSize: 11, fontWeight: '600', lineHeight: 15 }, pressed: { opacity: 0.7 } });

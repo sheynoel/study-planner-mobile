@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { DesignTokens } from '@/constants/theme';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 export function AppHeader({
   onBack,
@@ -15,8 +17,9 @@ export function AppHeader({
   subtitle?: string;
   title: string;
 }) {
+  const borderColor = useThemeColor({}, 'border');
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { borderBottomColor: borderColor }]}>
       <View style={styles.row}>
         {onBack ? (
           <Pressable
@@ -48,27 +51,30 @@ export function AppHeader({
 
 const styles = StyleSheet.create({
   header: {
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: DesignTokens.spacing.xs,
+    minHeight: 72,
+    paddingHorizontal: DesignTokens.layout.screenPadding,
+    paddingVertical: DesignTokens.spacing.md,
   },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 10,
+    gap: DesignTokens.spacing.sm,
   },
   backButton: {
     alignItems: 'center',
-    height: 40,
+    height: DesignTokens.size.touchTarget,
     justifyContent: 'center',
-    width: 32,
+    width: DesignTokens.size.touchTarget,
   },
   title: {
     flex: 1,
   },
   rightAction: {
-    paddingHorizontal: 4,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    minHeight: DesignTokens.size.touchTarget,
+    paddingHorizontal: DesignTokens.spacing.sm,
   },
   pressed: {
     opacity: 0.6,

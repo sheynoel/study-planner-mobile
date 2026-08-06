@@ -43,6 +43,7 @@ export function TaskProvider({ children }: PropsWithChildren) {
   const [listStatus, setListStatus] = useState<TaskListStatus>('idle');
   const [listError, setListError] = useState<string | null>(null);
   const activeFilters = useRef<TaskFilters>({});
+  const listRequestId = useRef(0);
 
   const runAuthenticated = useCallback(
     async <T,>(request: (accessToken: string) => Promise<T>): Promise<T> => {
@@ -67,15 +68,18 @@ export function TaskProvider({ children }: PropsWithChildren) {
 
   const loadTasks = useCallback(
     async (filters: TaskFilters = activeFilters.current) => {
+      const requestId = ++listRequestId.current;
       activeFilters.current = filters;
       setListStatus('loading');
       setListError(null);
 
       try {
         const response = await runAuthenticated((token) => getTasksRequest(token, filters));
+        if (requestId !== listRequestId.current) return;
         setTasks(response.data.tasks);
         setListStatus('success');
       } catch (error) {
+        if (requestId !== listRequestId.current) return;
         setListError(getApiErrorMessage(error));
         setListStatus('error');
         throw error;

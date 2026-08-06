@@ -24,7 +24,7 @@ This document records the mobile Calendar Management flow. It combines protected
 /class-schedules/:id         Class Schedule details used by class occurrences
 ```
 
-All routes remain inside the authenticated Expo Router group. Courses, Tasks, and Calendar are available through the existing protected section switcher.
+All routes remain inside the authenticated Expo Router group. Home, Calendar, Tasks, Courses, and Settings are available through the protected bottom navigation.
 
 ## Data loading and normalization
 
