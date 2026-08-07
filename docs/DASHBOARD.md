@@ -1,38 +1,36 @@
 # Mobile Home Dashboard
 
-The authenticated Home route combines existing Course, Task, Calendar Event, Class Schedule, and File services into an online-only student overview. It adds no backend endpoint, local database, notification, or synchronization behavior.
+The authenticated Home route is a compact student day dashboard built from the existing Course, Task, Calendar Event, and Class Schedule providers. It adds no backend endpoint, schema, local database, notification, or synchronization behavior.
 
-## Routes and navigation
+## Structure and navigation
 
-`/` is the default authenticated Home Dashboard. The five main bottom navigation actions are Home, Calendar, Tasks, Courses, and Files. Profile, Settings, and Appearance remain protected secondary destinations.
+`/` is the default authenticated route. Home is ordered as greeting/date, Classes Today, Calendar, and Tasks. Each academic section expands independently and defaults to expanded. `HomeProvider` owns the three booleans above the application stack, so they survive route navigation during the current JavaScript session without backend or device persistence.
 
-## Data loading
+The five bottom navigation actions remain Home, Calendar, Tasks, Courses, and Settings. Task rows open existing Task Details, class cards open Course Details, and the selected-date summary opens the full Calendar.
 
-The dashboard requests sources independently so a failed section does not hide successful sections:
+## Classes Today
 
-- `GET /courses` supplies course names and colors.
-- `GET /tasks` supplies dated tasks for local-day and next-seven-day projection.
-- `GET /calendar-events?from=...&to=...` requests events overlapping today through the next two weeks.
-- `GET /class-schedules?from=YYYY-MM-DD&to=YYYY-MM-DD` requests schedule definitions active in that same window.
-- `GET /files` supplies the backend's newest-first File list.
+- Existing two-week dashboard data supplies locally generated class occurrences for today.
+- Occurrences are sorted by start time and rendered in a horizontal compact-card row.
+- Local wall-clock start/end values determine past, current, and upcoming emphasis; a current class receives a subtle `Now` treatment.
+- A class card may show at most two incomplete tasks that have the same course UUID and a due timestamp on the same local date.
+- Tasks shown as class reminders remain present in the Tasks section.
 
-The backend lacks arbitrary local date-range Task filtering and File pagination/limit parameters. Mobile therefore loads the owned Task and File lists, then keeps only the dashboard ranges and display limits. This is a contract limitation, not a response mismatch.
+## Home calendar
 
-The screen refreshes whenever it gains focus and on pull-to-refresh. A request sequence guard prevents an older refresh from replacing a newer snapshot. Failed sources are cleared and receive a section-specific Retry state so stale data is not presented as current.
+Home reuses `CalendarProvider.loadRange` and the same monthly normalization used by the full Calendar. Previous/next month controls request the visible local month. The 42-cell grid marks task deadlines, calendar events, and locally generated class occurrences without creating records. Each date shows at most three marker dots; item or course colors are preferred, with existing source colors as fallback.
 
-## Local date and sorting behavior
+Selecting a date stays on Home, applies a theme-aware highlight, and shows a compact class/task/event count. The summary can open the full Calendar.
 
-- Local `Date` constructors define today's start/end and the next-seven-day deadline window; no fixed timezone offset is added.
-- Existing `generateClassScheduleOccurrences` logic is reused through `normalizeCalendarItems` for the bounded two-week window.
-- Today combines class occurrences, manual events, and incomplete timed tasks, then sorts them chronologically. No Calendar records are copied or persisted.
-- The next schedule hero selects the nearest currently active or future class/event in the loaded window and includes the date when it is not today.
-- Tasks Due Today excludes completed tasks, sorts by due time, and displays up to five.
-- Upcoming Deadlines starts tomorrow, ends after seven complete upcoming local dates, excludes today's/completed tasks, and sorts nearest first.
-- Recent Files sorts by `createdAt` descending and displays four.
+## Home tasks
 
-## Partial failures and mutations
+The default local projection includes `TODO` (Assigned) and `IN_PROGRESS`, excludes `COMPLETED`, sorts all dated tasks by due timestamp (therefore overdue first), and keeps undated tasks last. It is one continuous list with no date/status groups.
 
-Course-label, Task, Event, Class Schedule, and File errors are tracked independently. Working cards remain visible when another service fails. Completing a task uses the shared Task provider, immediately replaces the dashboard copy with the confirmed server response, and removes it from incomplete dashboard sections. Returning from create, edit, upload, complete, or delete routes performs a fresh dashboard load.
+The Home filter sheet composes one status, time range, course UUID or Personal, and priority. Reset restores the active-task default. Selecting Completed explicitly shows completed records; it never deletes them. Mutations remain owned by the existing Task routes and provider.
+
+## Refresh and failures
+
+Home refreshes the existing dashboard snapshot and visible calendar month on focus and pull-to-refresh. Existing request guards and authentication handling remain in their providers. Course, schedule, task, and calendar failures are surfaced near the affected section.
 
 ## Verification
 
@@ -45,4 +43,4 @@ npm run lint
 npx expo-doctor
 ```
 
-Automated dashboard tests cover mixed and empty accounts, personal and course-related records, elapsed and future schedules, timed tasks in Today, completed-task removal, recent-file ordering, section limits, and usable partial data.
+Focused Home tests cover chronological class projection, past/current/upcoming state, bounded same-course reminders, default active-task ordering, Completed visibility, and combined filters.

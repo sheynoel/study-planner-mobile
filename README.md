@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive Bento Student Workspace: bounded dashboard previews, a compact task list, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive student workspace: a compact day-focused Home, task lists, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -152,12 +152,12 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### Home Dashboard flow
 
-- `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Files. Profile, Settings, and Appearance remain protected secondary routes.
-- Home loads Courses, Tasks, a two-week Calendar Event and Class Schedule window, and Files through their existing typed services. It renders the nearest upcoming class/event, a seven-day strip, compact metrics, a chronological Today timeline including timed tasks, a bounded task focus list, course cards with next class, and recent materials.
-- Class occurrences reuse the Calendar's bounded local recurrence projection; manual events and classes are sorted together by start time.
-- Incomplete tasks are split into local Tasks Due Today and the next seven local dates, while recent Files are sorted newest first.
-- Each source settles independently, so successful sections remain visible with section-specific Retry states when another source fails.
-- Focus refreshes, pull-to-refresh, and confirmed task completion prevent stale dashboard sections after feature mutations.
+- `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Settings. File Library remains available from Settings and course workspaces.
+- Home is ordered as greeting/date, Classes Today, a compact full-month Calendar, and one continuous Tasks list. The three academic sections collapse independently and retain that state while navigating during the app session.
+- Today's recurring class occurrences are sorted by local start time, distinguish past/current/upcoming states, and may show up to two incomplete same-course tasks due today.
+- The Home calendar reuses the existing monthly Calendar provider and normalized event, deadline, and class-occurrence data. Selected dates stay on Home and show compact activity counts.
+- Home tasks default to Assigned and In Progress, sort overdue and dated work before undated work, and use one bottom-sheet filter for status, time, course UUID/Personal, and priority. Completed tasks appear only when selected.
+- Focus refreshes, pull-to-refresh, existing Task Details mutations, and section-scoped errors preserve the established data lifecycle.
 
 From this repository:
 

@@ -1,86 +1,123 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppSectionTabs } from '@/components/app-section-tabs';
 import { ErrorBanner } from '@/components/auth/auth-form';
-import { TimelineItem } from '@/components/calendar/timeline-item';
-import { WeekStrip } from '@/components/calendar/week-strip';
-import { CourseFolderCard } from '@/components/courses/course-folder-card';
+import { CollapsibleHomeSection } from '@/components/dashboard/collapsible-home-section';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { NextScheduleCard } from '@/components/dashboard/next-schedule-card';
-import { FilePreviewCard } from '@/components/files/file-preview-card';
-import { TaskPreviewCard } from '@/components/tasks/task-preview-card';
+import { HomeMonthCalendar } from '@/components/dashboard/home-month-calendar';
+import { HomeTaskFilterSheet } from '@/components/dashboard/home-task-filter-sheet';
+import { HomeTaskList } from '@/components/dashboard/home-task-list';
+import { SelectedDateSummary } from '@/components/dashboard/selected-date-summary';
+import { TodayClassCard } from '@/components/dashboard/today-class-card';
 import { ThemedText } from '@/components/themed-text';
 import { AppScreen } from '@/components/ui/app-screen';
-import { BentoCard } from '@/components/ui/bento-card';
-import { SecondaryButton } from '@/components/ui/buttons';
-import { HorizontalCarousel } from '@/components/ui/horizontal-carousel';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
-import { MetricCard } from '@/components/ui/metric-card';
-import { SectionHeader } from '@/components/ui/section-header';
 import { DesignTokens } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useCalendar } from '@/contexts/calendar-context';
 import { useDashboard } from '@/contexts/dashboard-context';
-import { getApiErrorMessage } from '@/lib/api/api-client';
-import type { CalendarItem } from '@/lib/api/calendar-event.types';
-import { toLocalDateKey } from '@/lib/calendar/calendar-date';
+import { useHome } from '@/contexts/home-context';
+import { addMonths, getMonthRange, toLocalDateKey } from '@/lib/calendar/calendar-date';
 import { calendarRoutes } from '@/lib/calendar/routes';
-import { classScheduleRoutes } from '@/lib/class-schedules/routes';
-import { formatNextClassLabel } from '@/lib/class-schedules/next-class';
 import { courseRoutes } from '@/lib/courses/routes';
-import { fileRoutes } from '@/lib/files/routes';
+import { activeHomeTaskFilterCount, countSelectedDateItems, DEFAULT_HOME_TASK_FILTERS, filterHomeTasks, getClassReminders, getClassTimeState, getTodayClasses, type HomeTaskFilters } from '@/lib/dashboard/home-dashboard';
 import { taskRoutes } from '@/lib/tasks/routes';
 
 export default function HomeDashboardScreen() {
   const { user } = useAuth();
   const dashboard = useDashboard();
+  const calendar = useCalendar();
+  const { expanded, toggleSection } = useHome();
+  const { width: screenWidth } = useWindowDimensions();
+  const [month, setMonth] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => toLocalDateKey(new Date()));
+  const [now, setNow] = useState(() => new Date());
+  const [taskFilters, setTaskFilters] = useState<HomeTaskFilters>(DEFAULT_HOME_TASK_FILTERS);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const range = useMemo(() => getMonthRange(month), [month]);
   const refreshDashboard = dashboard.refresh;
-  const [completingIds, setCompletingIds] = useState<Set<string>>(() => new Set());
-  const [actionError, setActionError] = useState<string | null>(null);
-  const courseNames = useMemo(() => new Map(dashboard.courses.map((course) => [course.id, course.name])), [dashboard.courses]);
-  const focusTasks = useMemo(() => [...dashboard.tasksDueToday, ...dashboard.upcomingDeadlines].slice(0, 3), [dashboard.tasksDueToday, dashboard.upcomingDeadlines]);
-  const dashboardError = Array.from(new Set(Object.values(dashboard.errors))).filter(Boolean).join(' ');
-  const courseTaskCounts = useMemo(() => countByCourse(dashboard.tasks.filter((task) => task.status !== 'COMPLETED')), [dashboard.tasks]);
-  const courseFileCounts = useMemo(() => countByCourse(dashboard.files), [dashboard.files]);
-  const courseNextClasses = useMemo(() => { const result = new Map<string, string>(); for (const item of dashboard.upcomingSchedule) if (item.sourceType === 'class_schedule' && item.courseId && !result.has(item.courseId)) result.set(item.courseId, formatNextClassLabel(item)); return result; }, [dashboard.upcomingSchedule]);
+  const loadCalendarRange = calendar.loadRange;
 
-  useFocusEffect(useCallback(() => { void refreshDashboard(); }, [refreshDashboard]));
+  useFocusEffect(useCallback(() => {
+    setNow(new Date());
+    void refreshDashboard();
+  }, [refreshDashboard]));
 
-  async function handleComplete(id: string) {
-    if (completingIds.has(id)) return;
-    setActionError(null);
-    setCompletingIds((current) => new Set(current).add(id));
-    try { await dashboard.completeTask(id); }
-    catch (error) { setActionError(getApiErrorMessage(error)); }
-    finally { setCompletingIds((current) => { const next = new Set(current); next.delete(id); return next; }); }
+  useFocusEffect(useCallback(() => {
+    void loadCalendarRange(range).catch(() => undefined);
+  }, [loadCalendarRange, range]));
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const courseById = useMemo(() => new Map(dashboard.courses.map((course) => [course.id, course])), [dashboard.courses]);
+  const courseColors = useMemo(() => new Map(dashboard.courses.map((course) => [course.id, course.color])), [dashboard.courses]);
+  const todayClasses = useMemo(() => getTodayClasses(dashboard.todaySchedule, now), [dashboard.todaySchedule, now]);
+  const visibleTasks = useMemo(() => filterHomeTasks(dashboard.tasks, taskFilters, now), [dashboard.tasks, now, taskFilters]);
+  const selectedCounts = useMemo(() => countSelectedDateItems(calendar.items, selectedDate), [calendar.items, selectedDate]);
+  const classCardWidth = Math.min(280, Math.max(220, screenWidth - 88));
+  const filterCount = activeHomeTaskFilterCount(taskFilters);
+
+  function changeMonth(amount: number) {
+    const next = addMonths(month, amount);
+    setMonth(next);
+    setSelectedDate(toLocalDateKey(next));
   }
 
-  function openScheduleItem(item: CalendarItem) {
-    router.push(item.sourceType === 'class_schedule' ? classScheduleRoutes.details(item.sourceId) : item.sourceType === 'task' ? taskRoutes.details(item.sourceId) : calendarRoutes.details(item.sourceId));
+  async function refreshAll() {
+    await Promise.allSettled([dashboard.refresh(), calendar.loadRange(range)]);
   }
 
   return <AppScreen footer={<AppSectionTabs active="home" />}>
-    <DashboardHeader classesToday={dashboard.classesTodayCount} name={user?.name ?? 'Student'} onOpenSettings={() => router.push('/profile')} tasksDueToday={dashboard.allTasksDueTodayCount} />
-    <ErrorBanner message={actionError} />
-    {dashboard.isLoading && !dashboard.hasLoaded ? <LoadingSkeleton rows={4} /> : null}
-    {dashboard.hasLoaded ? <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl onRefresh={() => void dashboard.refresh()} refreshing={dashboard.isRefreshing} />}>
-      {dashboardError ? <View style={styles.section}><BentoCard><ErrorBanner message={dashboardError} /><SecondaryButton label="Retry dashboard data" onPress={() => void dashboard.refresh()} /></BentoCard></View> : null}
-      <View style={styles.section}><SectionHeader actionLabel="Calendar" onAction={() => router.push(calendarRoutes.list)} title="Up next" />{dashboard.nextScheduleItem ? <NextScheduleCard item={dashboard.nextScheduleItem} onPress={() => openScheduleItem(dashboard.nextScheduleItem!)} /> : <BentoCard tone="accent"><ThemedText type="subtitle">Your schedule is clear</ThemedText><ThemedText>No class or event is scheduled in the next two weeks.</ThemedText></BentoCard>}</View>
+    <DashboardHeader name={user?.name ?? 'Student'} onOpenSettings={() => router.push('/profile')} />
+    {dashboard.isLoading && !dashboard.hasLoaded ? <View style={styles.padded}><LoadingSkeleton rows={4} /></View> : null}
+    {dashboard.hasLoaded ? <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl onRefresh={() => void refreshAll()} refreshing={dashboard.isRefreshing} />}>
+      <CollapsibleHomeSection expanded={expanded.classes} onToggle={() => toggleSection('classes')} title="Classes Today">
+        {dashboard.errors.schedules || dashboard.errors.courses ? <ErrorBanner message={dashboard.errors.schedules ?? dashboard.errors.courses ?? null} /> : null}
+        {todayClasses.length ? <ScrollView contentContainerStyle={styles.classRow} horizontal showsHorizontalScrollIndicator={false}>{todayClasses.map((item) => {
+          const course = item.courseId ? courseById.get(item.courseId) : undefined;
+          return <TodayClassCard courseCode={course?.code || course?.name || 'Class'} item={item} key={item.id} onPress={() => { if (item.courseId) router.push(courseRoutes.details(item.courseId)); }} reminders={getClassReminders(dashboard.tasks, item.courseId, now)} state={getClassTimeState(item, now)} width={classCardWidth} />;
+        })}</ScrollView> : <CalmEmptyState label="No classes today" />}
+      </CollapsibleHomeSection>
 
-      <WeekStrip onSelect={() => router.push(calendarRoutes.list)} selectedDate={toLocalDateKey(new Date())} />
-      <View style={styles.metrics}><MetricCard icon="checkbox-outline" label="Due today" value={dashboard.allTasksDueTodayCount} /><MetricCard icon="calendar-outline" label="This week" value={dashboard.tasksThisWeekCount} /><MetricCard icon="school-outline" label="Classes today" value={dashboard.classesTodayCount} /></View>
+      <CollapsibleHomeSection expanded={expanded.calendar} onToggle={() => toggleSection('calendar')} title="Calendar">
+        {calendar.listStatus === 'loading' || calendar.listStatus === 'idle' ? <LoadingSkeleton rows={2} /> : null}
+        {calendar.listStatus === 'error' ? <ErrorBanner message={calendar.listError} /> : null}
+        {calendar.listStatus === 'success' ? <><HomeMonthCalendar courseColors={courseColors} items={calendar.items} month={month} onNextMonth={() => changeMonth(1)} onPreviousMonth={() => changeMonth(-1)} onSelectDate={setSelectedDate} selectedDate={selectedDate} /><SelectedDateSummary classes={selectedCounts.classes} events={selectedCounts.events} onPress={() => router.push(calendarRoutes.list)} selectedDate={selectedDate} tasks={selectedCounts.tasks} /></> : null}
+      </CollapsibleHomeSection>
 
-      <View style={styles.section}><SectionHeader actionLabel="Full day" onAction={() => router.push(calendarRoutes.list)} title="Today" />{dashboard.todaySchedule.slice(0, 5).map((item, index, visible) => <TimelineItem item={item} key={item.id} last={index === visible.length - 1} onPress={() => openScheduleItem(item)} />)}{dashboard.todaySchedule.length === 0 ? <BentoCard tone="subtle"><ThemedText>Your timeline is open today.</ThemedText></BentoCard> : null}</View>
-
-      <View style={styles.section}><SectionHeader actionLabel="All tasks" onAction={() => router.push(taskRoutes.list)} title="Tasks to focus on" />{focusTasks.length ? focusTasks.map((task) => <TaskPreviewCard courseName={task.courseId ? courseNames.get(task.courseId) : undefined} isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <BentoCard tone="subtle"><ThemedText type="defaultSemiBold">You’re caught up.</ThemedText><ThemedText>No incomplete deadline needs attention right now.</ThemedText></BentoCard>}</View>
-
-      <View style={styles.edgeSection}><View style={styles.edgeHeading}><SectionHeader actionLabel="View all" onAction={() => router.push(courseRoutes.list)} title="Courses" /></View>{dashboard.courses.length ? <HorizontalCarousel>{dashboard.courses.slice(0, 6).map((course) => <CourseFolderCard course={course} fileCount={courseFileCounts.get(course.id) ?? 0} key={course.id} nextClass={courseNextClasses.get(course.id)} onPress={() => router.push(courseRoutes.details(course.id))} taskCount={courseTaskCounts.get(course.id) ?? 0} width={210} />)}</HorizontalCarousel> : <View style={styles.edgeHeading}><BentoCard tone="subtle"><ThemedText>No courses yet. Create one to organize your semester.</ThemedText></BentoCard></View>}</View>
-
-      <View style={styles.edgeSection}><View style={styles.edgeHeading}><SectionHeader actionLabel="All files" onAction={() => router.push(fileRoutes.list)} title="Recent materials" /></View>{dashboard.recentFiles.length ? <HorizontalCarousel>{dashboard.recentFiles.map((file) => <FilePreviewCard file={file} key={file.id} onPress={() => router.push(fileRoutes.details(file.id))} width={168} />)}</HorizontalCarousel> : <View style={styles.edgeHeading}><BentoCard tone="subtle"><ThemedText>Your recently uploaded study materials will appear here.</ThemedText></BentoCard></View>}</View>
+      <CollapsibleHomeSection action={<FilterButton count={filterCount} onPress={() => setFilterVisible(true)} />} expanded={expanded.tasks} onToggle={() => toggleSection('tasks')} title="Tasks">
+        {dashboard.errors.tasks ? <ErrorBanner message={dashboard.errors.tasks} /> : null}
+        <HomeTaskList courses={dashboard.courses} onOpenTask={(task) => router.push(taskRoutes.details(task.id))} tasks={visibleTasks} />
+      </CollapsibleHomeSection>
     </ScrollView> : null}
+    <HomeTaskFilterSheet courses={dashboard.courses} onApply={setTaskFilters} onClose={() => setFilterVisible(false)} value={taskFilters} visible={filterVisible} />
   </AppScreen>;
 }
 
-function countByCourse(items: { courseId: string | null }[]): Map<string, number> { const result = new Map<string, number>(); for (const item of items) if (item.courseId) result.set(item.courseId, (result.get(item.courseId) ?? 0) + 1); return result; }
-const styles = StyleSheet.create({ content: { gap: DesignTokens.layout.sectionGap, paddingBottom: 120 }, metrics: { flexDirection: 'row', gap: DesignTokens.spacing.sm, paddingHorizontal: DesignTokens.layout.screenPadding }, section: { gap: DesignTokens.spacing.sm, paddingHorizontal: DesignTokens.layout.screenPadding }, edgeSection: { gap: DesignTokens.spacing.sm }, edgeHeading: { paddingHorizontal: DesignTokens.layout.screenPadding } });
+function FilterButton({ count, onPress }: { count: number; onPress: () => void }) {
+  const { colors } = useAppearance();
+  return <Pressable accessibilityLabel={`Filter tasks${count ? `, ${count} active` : ''}`} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.filter, pressed ? styles.pressed : undefined]}><Ionicons color={colors.primary} name="options-outline" size={15} /><ThemedText style={[styles.filterLabel, { color: colors.primary }]}>Filter{count ? ` (${count})` : ''}</ThemedText></Pressable>;
+}
+
+function CalmEmptyState({ label }: { label: string }) {
+  const { colors } = useAppearance();
+  return <View style={[styles.empty, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}><ThemedText style={[styles.emptyLabel, { color: colors.textSecondary }]}>{label}</ThemedText></View>;
+}
+
+const styles = StyleSheet.create({
+  content: { gap: DesignTokens.spacing.lg, paddingBottom: 128, paddingHorizontal: DesignTokens.layout.screenPadding },
+  padded: { paddingHorizontal: DesignTokens.layout.screenPadding },
+  classRow: { gap: DesignTokens.spacing.sm, paddingRight: DesignTokens.layout.screenPadding },
+  filter: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: DesignTokens.size.touchTarget, paddingHorizontal: DesignTokens.spacing.xs },
+  filterLabel: { fontSize: 11, fontWeight: '700', lineHeight: 15 },
+  empty: { borderRadius: DesignTokens.radius.md, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: DesignTokens.spacing.md, paddingVertical: DesignTokens.spacing.md },
+  emptyLabel: { fontSize: 12, lineHeight: 17 },
+  pressed: { opacity: 0.58 },
+});
