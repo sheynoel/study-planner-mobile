@@ -28,13 +28,14 @@ export async function loadDashboardData(
   now = new Date(),
 ): Promise<DashboardLoadResult> {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  const date = toLocalDateKey(now);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14, 23, 59, 59, 999);
+  const firstDate = toLocalDateKey(start);
+  const lastDate = toLocalDateKey(end);
   const requests = await Promise.allSettled([
     getCourses(accessToken),
     getTasks(accessToken),
     getCalendarEvents(accessToken, { from: start.toISOString(), to: end.toISOString() }),
-    getClassSchedules(accessToken, { from: date, to: date }),
+    getClassSchedules(accessToken, { from: firstDate, to: lastDate }),
     getFiles(accessToken),
   ] as const);
   const sources: DashboardSource[] = ['courses', 'tasks', 'events', 'schedules', 'files'];

@@ -82,7 +82,7 @@ React Native Paper is not currently installed. The project already has Expo Rout
 2. Add shared screen, bento, metric, carousel, skeleton, icon, sheet, and preview components.
 3. Redesign the five-item navigation and global quick-add sheet while preserving current destinations.
 4. Recompose Home into bounded bento sections using existing dashboard data.
-5. Group Tasks into Overdue, Today, Upcoming, Later, and Completed sections with summary metrics.
+5. Present Tasks as one continuous compact list with relative urgency labels, course tabs, and a weekly selector.
 6. Convert Courses to a two-column folder grid and Course Details to a workspace layout.
 7. Add a collapsible month, week strip, and timeline treatment to Calendar without changing date logic.
 8. Group Files into recent, course, and personal resource sections while retaining filters and upload/download actions.
@@ -95,7 +95,7 @@ React Native Paper is not currently installed. The project already has Expo Rout
 
 - The five-tab workspace uses Home, Calendar, Tasks, Courses, and Settings with one accessible global quick-add sheet. File routes remain available contextually.
 - Home is a bounded bento dashboard with metrics, the next schedule, one continue-working task, course folders, a short timeline, and recent materials.
-- Tasks use two summary cards, four primary time views, filter/sort sheets, and detailed deadline groups while retaining completion and supported backend filters.
+- Tasks use a compact month summary, weekly selector, course tabs, filter/sort sheets, and one continuous academic card list while retaining completion and supported backend filters.
 - Courses use a responsive two-column folder grid plus Personal Library; Course Details has Overview, Tasks, Materials, and Schedule tabs backed by course-scoped requests.
 - Calendar keeps the existing month/date logic and combines a collapsible month, week strip, legend, and selected-day timeline.
 - The shared File Library supports all-files, one-course, and personal scopes with exact multi-extension material categories.

@@ -30,9 +30,9 @@ import type { CalendarItem } from '@/lib/api/calendar-event.types';
 import type { Course } from '@/lib/api/course.types';
 import type { FileRecord } from '@/lib/api/file.types';
 import type { Task } from '@/lib/api/task.types';
-import { formatLocalDateTime, toLocalDateKey } from '@/lib/calendar/calendar-date';
+import { formatLocalDateTime } from '@/lib/calendar/calendar-date';
 import { classScheduleRoutes } from '@/lib/class-schedules/routes';
-import { generateClassScheduleOccurrences } from '@/lib/class-schedules/occurrences';
+import { findNextClassOccurrence, formatScheduleSummary } from '@/lib/class-schedules/next-class';
 import { courseRoutes, type CourseWorkspaceTab } from '@/lib/courses/routes';
 import { fileRoutes } from '@/lib/files/routes';
 import { formatTaskDate } from '@/lib/tasks/task-display';
@@ -58,7 +58,8 @@ export default function CourseDetailsScreen() {
   const [completingIds, setCompletingIds] = useState<Set<string>>(() => new Set());
   const courseTasks = useMemo(() => tasks.filter((task) => task.courseId === courseId), [courseId, tasks]);
   const pendingTasks = useMemo(() => courseTasks.filter((task) => task.status !== 'COMPLETED').sort((a, b) => dueTime(a) - dueTime(b)), [courseTasks]);
-  const nextClass = useMemo(() => course ? findNextClass(course, schedules) : null, [course, schedules]);
+  const nextClass = useMemo(() => course ? findNextClassOccurrence(schedules, [course]) : null, [course, schedules]);
+  const scheduleSummary = useMemo(() => formatScheduleSummary(schedules.length, nextClass), [nextClass, schedules.length]);
 
   useEffect(() => { if (isWorkspaceTab(routeTab)) setTab(routeTab); }, [routeTab]);
 
@@ -91,12 +92,12 @@ export default function CourseDetailsScreen() {
   }
 
   return <AppScreen edges={['top', 'bottom']}>
-    <AppHeader onBack={() => router.back()} onRightAction={course && courseId ? () => router.push(courseRoutes.edit(courseId)) : undefined} rightActionLabel={course && courseId ? 'Edit' : undefined} title={course?.name ?? 'Course workspace'} />
+    <AppHeader onBack={() => router.back()} onRightAction={course && courseId ? () => router.push(courseRoutes.edit(courseId)) : undefined} rightActionLabel={course && courseId ? 'Edit' : undefined} title="Course" />
     {isLoading && !course ? <LoadingSkeleton rows={4} /> : null}
     {loadError && !course ? <ErrorState message={loadError} onRetry={() => void refresh()} /> : null}
     {course ? <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <CourseHero course={course} />
-      <View style={styles.metrics}><CourseMetricCard icon="checkbox-outline" label="Tasks" value={pendingTasks.length} /><CourseMetricCard icon="documents-outline" label="Materials" value={courseFiles.length} /><CourseMetricCard icon="time-outline" label="Schedule" value={schedules.length} /></View>
+      <CourseHero course={course} scheduleSummary={scheduleSummary} />
+      <View style={styles.metrics}><CourseMetricCard icon="checkbox-outline" label="Tasks" value={pendingTasks.length} /><CourseMetricCard icon="documents-outline" label="Materials" value={courseFiles.length} /><CourseMetricCard icon="time-outline" label="Classes" value={schedules.length} /></View>
       <CourseWorkspaceTabs onChange={setTab} value={tab} />
       {tab === 'overview' ? <OverviewTab course={course} files={courseFiles} nextClass={nextClass} onSelectTab={setTab} pendingTasks={pendingTasks} schedules={schedules} /> : null}
       {tab === 'tasks' ? <View style={styles.section}><SectionHeader title="Course tasks" />{courseTasks.length ? courseTasks.map((task) => <TaskPreviewCard courseName={course.name} isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <BentoCard tone="subtle"><ThemedText>No tasks belong to this course yet.</ThemedText></BentoCard>}</View> : null}
@@ -110,14 +111,14 @@ export default function CourseDetailsScreen() {
 
 function OverviewTab({ course, files, nextClass, onSelectTab, pendingTasks, schedules }: { course: Course; files: ReturnType<typeof useFiles>['files']; nextClass: CalendarItem | null; onSelectTab: (tab: CourseWorkspaceTab) => void; pendingTasks: Task[]; schedules: ReturnType<typeof useClassSchedules>['schedules'] }) {
   return <View style={styles.overview}>
+    <View style={styles.overviewSection}><SectionHeader title="Course information" /><BentoCard style={styles.infoCard}><ThemedText>{course.description ?? 'No course description added.'}</ThemedText><ThemedText style={DesignTokens.typography.supporting}>{course.instructor ?? 'Instructor not added'} · {course.room ?? 'Room not added'}</ThemedText></BentoCard></View>
     <View style={styles.overviewSection}><SectionHeader title="Up next" /><View style={styles.twoColumn}><BentoCard style={styles.flexCard} tone="accent"><ThemedText type="defaultSemiBold">Next class</ThemedText><ThemedText>{nextClass ? formatLocalDateTime(nextClass.startAt) : 'No class in the next two weeks'}</ThemedText>{nextClass?.location ? <ThemedText>{nextClass.location}</ThemedText> : null}</BentoCard><BentoCard style={styles.flexCard}><ThemedText type="defaultSemiBold">Nearest deadline</ThemedText><ThemedText>{pendingTasks[0]?.title ?? 'No pending deadline'}</ThemedText>{pendingTasks[0] ? <ThemedText>{formatTaskDate(pendingTasks[0].dueAt)}</ThemedText> : null}</BentoCard></View></View>
     <View style={styles.edgeSection}><View style={styles.edgeHeading}><SectionHeader actionLabel="Materials tab" onAction={() => onSelectTab('materials')} title="Recent materials" /></View>{files.length ? <HorizontalCarousel>{files.slice(0, 5).map((file) => <FilePreviewCard file={file} key={file.id} onPress={() => router.push(fileRoutes.details(file.id))} />)}</HorizontalCarousel> : <View style={styles.edgeHeading}><BentoCard tone="subtle"><ThemedText>No files have been added to this course.</ThemedText></BentoCard></View>}</View>
     <View style={styles.overviewSection}><SectionHeader actionLabel="Schedule tab" onAction={() => onSelectTab('schedule')} title="Schedule preview" />{schedules.slice(0, 2).map((schedule) => <ClassScheduleCard course={course} key={schedule.id} onPress={() => router.push(classScheduleRoutes.details(schedule.id))} schedule={schedule} />)}{schedules.length === 0 ? <BentoCard tone="subtle"><ThemedText>No weekly class meeting has been added.</ThemedText></BentoCard> : null}</View>
   </View>;
 }
 
-function findNextClass(course: Course, schedules: ReturnType<typeof useClassSchedules>['schedules']): CalendarItem | null { const now = new Date(); const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14, 23, 59, 59, 999); return generateClassScheduleOccurrences(schedules, [course], { from: now.toISOString(), to: end.toISOString(), firstDate: toLocalDateKey(now), lastDate: toLocalDateKey(end) }).filter((item) => Date.parse(item.startAt) >= now.getTime()).sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt))[0] ?? null; }
 function dueTime(task: Task): number { return task.dueAt ? Date.parse(task.dueAt) : Number.MAX_SAFE_INTEGER; }
 function isWorkspaceTab(value: string | undefined): value is CourseWorkspaceTab { return Boolean(value && WORKSPACE_TABS.includes(value as CourseWorkspaceTab)); }
 
-const styles = StyleSheet.create({ content: { gap: DesignTokens.layout.sectionGap, padding: DesignTokens.layout.screenPadding, paddingBottom: 48 }, metrics: { flexDirection: 'row', gap: DesignTokens.spacing.sm }, overview: { gap: DesignTokens.layout.sectionGap, marginHorizontal: -DesignTokens.layout.screenPadding }, section: { gap: DesignTokens.spacing.md }, overviewSection: { gap: DesignTokens.spacing.md, paddingHorizontal: DesignTokens.layout.screenPadding }, twoColumn: { flexDirection: 'row', gap: DesignTokens.spacing.sm }, flexCard: { flex: 1, gap: DesignTokens.spacing.sm, minHeight: 128 }, edgeSection: { gap: DesignTokens.spacing.sm }, edgeHeading: { paddingHorizontal: DesignTokens.layout.screenPadding } });
+const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.lg, padding: DesignTokens.layout.screenPadding, paddingBottom: 48 }, metrics: { flexDirection: 'row', gap: DesignTokens.spacing.sm }, overview: { gap: DesignTokens.layout.sectionGap, marginHorizontal: -DesignTokens.layout.screenPadding }, section: { gap: DesignTokens.spacing.md }, overviewSection: { gap: DesignTokens.spacing.sm, paddingHorizontal: DesignTokens.layout.screenPadding }, infoCard: { gap: DesignTokens.spacing.xs, padding: DesignTokens.spacing.md }, twoColumn: { flexDirection: 'row', gap: DesignTokens.spacing.sm }, flexCard: { flex: 1, gap: DesignTokens.spacing.xs, minHeight: 108, padding: DesignTokens.spacing.md }, edgeSection: { gap: DesignTokens.spacing.sm }, edgeHeading: { paddingHorizontal: DesignTokens.layout.screenPadding } });

@@ -6,7 +6,7 @@ import { useAppearance } from '@/contexts/appearance-context';
 import type { TaskPriority, TaskStatus } from '@/lib/api/task.types';
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from '@/lib/tasks/task-display';
 
-export function TaskStatusChip({ status }: { status: TaskStatus }) {
+export function TaskStatusChip({ compact = false, status }: { compact?: boolean; status: TaskStatus }) {
   const { colors: palette } = useAppearance();
   const colors = status === 'COMPLETED'
     ? { background: palette.completedContainer, text: palette.completed }
@@ -14,13 +14,13 @@ export function TaskStatusChip({ status }: { status: TaskStatus }) {
       ? { background: palette.primaryContainer, text: palette.primary }
       : { background: palette.surfaceVariant, text: palette.textSecondary };
   return (
-    <View accessibilityLabel={`Status: ${TASK_STATUS_LABELS[status]}`} style={[styles.chip, { backgroundColor: colors.background }]}>
-      <ThemedText style={[styles.label, { color: colors.text }]}>{STATUS_ICONS[status]} {TASK_STATUS_LABELS[status]}</ThemedText>
+    <View accessibilityLabel={`Status: ${TASK_STATUS_LABELS[status]}`} style={[styles.chip, compact ? styles.compactChip : undefined, { backgroundColor: colors.background }]}>
+      <ThemedText style={[styles.label, compact ? styles.compactLabel : undefined, { color: colors.text }]}>{STATUS_ICONS[status]} {TASK_STATUS_LABELS[status]}</ThemedText>
     </View>
   );
 }
 
-export function TaskPriorityChip({ priority }: { priority: TaskPriority }) {
+export function TaskPriorityChip({ compact = false, priority }: { compact?: boolean; priority: TaskPriority }) {
   const { colors: palette } = useAppearance();
   const colors = priority === 'HIGH'
     ? { background: palette.dangerSurface, text: palette.dangerText }
@@ -28,8 +28,8 @@ export function TaskPriorityChip({ priority }: { priority: TaskPriority }) {
       ? { background: palette.warningSurface, text: palette.warning }
       : { background: palette.surfaceVariant, text: palette.textSecondary };
   return (
-    <View accessibilityLabel={`Priority: ${TASK_PRIORITY_LABELS[priority]}`} style={[styles.chip, { backgroundColor: colors.background }]}>
-      <ThemedText style={[styles.label, { color: colors.text }]}>{PRIORITY_ICONS[priority]} {TASK_PRIORITY_LABELS[priority]}</ThemedText>
+    <View accessibilityLabel={`Priority: ${TASK_PRIORITY_LABELS[priority]}`} style={[styles.chip, compact ? styles.compactChip : undefined, { backgroundColor: colors.background }]}>
+      <ThemedText style={[styles.label, compact ? styles.compactLabel : undefined, { color: colors.text }]}>{PRIORITY_ICONS[priority]} {TASK_PRIORITY_LABELS[priority]}</ThemedText>
     </View>
   );
 }
@@ -43,4 +43,6 @@ const PRIORITY_ICONS: Record<TaskPriority, string> = { LOW: '\u2193', MEDIUM: '\
 const styles = StyleSheet.create({
   chip: { alignSelf: 'flex-start', borderRadius: DesignTokens.radius.pill, paddingHorizontal: DesignTokens.spacing.sm, paddingVertical: DesignTokens.spacing.xs },
   label: { fontSize: 13, fontWeight: '600', lineHeight: 18 },
+  compactChip: { paddingHorizontal: 7, paddingVertical: 2 },
+  compactLabel: { fontSize: 10.5, lineHeight: 15 },
 });

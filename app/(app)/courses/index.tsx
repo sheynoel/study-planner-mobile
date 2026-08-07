@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppSectionTabs } from '@/components/app-section-tabs';
@@ -14,7 +14,7 @@ import { DesignTokens } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { useCourses } from '@/contexts/course-context';
 import { useDashboard } from '@/contexts/dashboard-context';
-import { formatLocalTime } from '@/lib/calendar/calendar-date';
+import { formatNextClassLabel } from '@/lib/class-schedules/next-class';
 import { courseRoutes } from '@/lib/courses/routes';
 import { fileRoutes } from '@/lib/files/routes';
 
@@ -22,10 +22,12 @@ export default function CourseListScreen() {
   const { user } = useAuth();
   const { courses, listError, listStatus, loadCourses } = useCourses();
   const dashboard = useDashboard();
+  const { width: viewportWidth } = useWindowDimensions();
   const refreshDashboard = dashboard.refresh;
   const taskCounts = useMemo(() => countByCourse(dashboard.tasks.filter((task) => task.status !== 'COMPLETED')), [dashboard.tasks]);
   const fileCounts = useMemo(() => countByCourse(dashboard.files), [dashboard.files]);
-  const nextClasses = useMemo(() => { const result = new Map<string, string>(); for (const item of dashboard.todaySchedule) if (item.sourceType === 'class_schedule' && item.courseId && !result.has(item.courseId)) result.set(item.courseId, formatLocalTime(item.startAt)); return result; }, [dashboard.todaySchedule]);
+  const nextClasses = useMemo(() => { const result = new Map<string, string>(); for (const item of dashboard.upcomingSchedule) if (item.sourceType === 'class_schedule' && item.courseId && !result.has(item.courseId)) result.set(item.courseId, formatNextClassLabel(item)); return result; }, [dashboard.upcomingSchedule]);
+  const cardWidth = viewportWidth < 390 ? viewportWidth - DesignTokens.layout.screenPadding * 2 : (viewportWidth - DesignTokens.layout.screenPadding * 2 - DesignTokens.spacing.md) / 2;
   const personalFiles = dashboard.files.filter((file) => file.courseId === null).length;
   const refresh = useCallback(async () => { await Promise.all([loadCourses(), refreshDashboard()]); }, [loadCourses, refreshDashboard]);
   useFocusEffect(useCallback(() => { void refresh().catch(() => undefined); }, [refresh]));
@@ -36,7 +38,7 @@ export default function CourseListScreen() {
     {listStatus === 'error' ? <ErrorState message={listError ?? 'Your courses could not be loaded.'} onRetry={() => void refresh().catch(() => undefined)} /> : null}
     {listStatus === 'success' ? <ScrollView contentContainerStyle={styles.content}>
       <SectionHeader title="Course folders" />
-      {courses.length ? <View style={styles.grid}>{courses.map((course) => <CourseFolderCard course={course} fileCount={fileCounts.get(course.id) ?? 0} key={course.id} nextClass={nextClasses.get(course.id)} onPress={() => router.push(courseRoutes.details(course.id))} taskCount={taskCounts.get(course.id) ?? 0} width="47%" />)}</View> : <EmptyState actionLabel="Add Course" description="Create your first course folder to organize academic work." onAction={() => router.push(courseRoutes.add)} title="Your semester starts here" />}
+      {courses.length ? <View style={styles.grid}>{courses.map((course) => <CourseFolderCard course={course} fileCount={fileCounts.get(course.id) ?? 0} key={course.id} nextClass={nextClasses.get(course.id)} onPress={() => router.push(courseRoutes.details(course.id))} taskCount={taskCounts.get(course.id) ?? 0} width={cardWidth} />)}</View> : <EmptyState actionLabel="Add Course" description="Create your first course folder to organize academic work." onAction={() => router.push(courseRoutes.add)} title="Your semester starts here" />}
       <PersonalLibraryCard fileCount={personalFiles} onPress={() => router.push(fileRoutes.personal)} />
     </ScrollView> : null}
   </AppScreen>;

@@ -8,9 +8,9 @@ This document records the mobile portion of roadmap phase 5. It consumes the pro
 - A protected Task provider that sources the JWT from the authentication context and owns displayed Task state.
 - Task list, add, details, and edit routes within the authenticated Expo Router group.
 - Combined personal and course-related display using Course names and codes from the existing Course provider.
-- Reusable summary cards, grouped sections, filter and sort sheets, Task card, form, status chip, and priority chip components plus existing loading, error, and empty states.
-- Today, Upcoming, All, and Completed primary views plus course UUID/personal, priority, status, due, and search filtering.
-- Due-date, priority, recently-created, course, and alphabetical sorting.
+- Reusable weekly selector, course tabs, filter and sort sheets, compact academic Task card, form, status chip, and priority chip components plus existing loading, error, and empty states.
+- Course UUID/personal tabs plus selected-date, priority, status, due, and search filtering.
+- Deadline-soonest, deadline-latest, priority, recently-added, and alphabetical sorting.
 - Client validation for title, description, local due date/time, course, status, and priority.
 - Completion with duplicate-request protection, editing with server refresh, and confirmation-based deletion.
 
@@ -23,7 +23,7 @@ This document records the mobile portion of roadmap phase 5. It consumes the pro
 /tasks/:id/edit           Edit task
 ```
 
-The Task list is available through the five-item authenticated bottom navigation. It defaults to grouped Today, then can display Overdue, Today, Tomorrow, Later This Week, Later, No Due Date, and Completed sections as the selected filters allow.
+The Task list is available through the five-item authenticated bottom navigation. It presents one continuous compact list; relative urgency remains on each card rather than creating separate deadline or completion groups.
 
 Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` values remain server filters. Search, Personal, This Week, and presentation sorting are applied locally to the server result because the backend has no corresponding query parameters. The filter sheet never sends the `personal` or `this_week` UI values to the API.
 
@@ -55,9 +55,9 @@ Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` v
 5. Open Tasks from the bottom navigation and verify loading, empty, Add Task, and retry behavior.
 6. Create a personal task, then create a course-related task and confirm the selector shows Course name and code.
 7. Enter invalid title/date/time values and confirm validation; create valid dated tasks and confirm local display.
-8. Exercise every quick, course, and priority filter and verify overdue treatment.
+8. Exercise every course, date, status, priority, and due filter plus every sort option and verify overdue treatment.
 9. Open details, edit every field, remove a Course association, save, and confirm detail/list refresh.
-10. Mark a task complete from both list and details and verify duplicate taps are disabled and completed styling appears.
+10. Mark a task complete from details and verify the list refreshes with compact completed styling.
 11. Cancel deletion once, then confirm deletion and verify the task is absent from the list.
 12. Sign out and verify Task routes are no longer accessible.
 

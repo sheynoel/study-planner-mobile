@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
-import { AppSectionTabs } from '@/components/app-section-tabs';
 import { ErrorBanner } from '@/components/auth/auth-form';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedText } from '@/components/themed-text';
@@ -20,7 +19,7 @@ export default function SettingsScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function handleLogout() { if (isLoggingOut) return; setError(null); setIsLoggingOut(true); try { await logout(); } catch (reason) { setError(getAuthErrorMessage(reason)); setIsLoggingOut(false); } }
-  return <AppScreen footer={<AppSectionTabs active="settings" />}>
+  return <AppScreen>
     <AppHeader subtitle="Your account, workspace, and app preferences." title="Settings" />
     <ScrollView contentContainerStyle={styles.content}>
       <BentoCard style={styles.account} tone="accent"><ThemedText type="subtitle">Account</ThemedText><ThemedText>{user?.name ?? 'Student'}</ThemedText><ThemedText selectable>{user?.email ?? 'Email unavailable'}</ThemedText></BentoCard>

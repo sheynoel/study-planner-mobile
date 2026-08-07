@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive Bento Student Workspace: bounded dashboard previews, grouped tasks, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive Bento Student Workspace: bounded dashboard previews, a compact task list, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -108,15 +108,15 @@ The current backend does not configure CORS, so browser authentication requests 
 
 - The protected `/courses` route lists only the authenticated user's courses and supports retry, empty, loading, and populated states.
 - Add and edit screens share validated fields for name, code, description, instructor, room, and a predefined color palette.
-- Course Details is a scoped workspace with Overview, Tasks, Materials, and Schedule tabs. It requests only records belonging to that course and keeps course uploads inside Materials.
-- The Courses grid includes a Personal Library entry for files without a course.
+- Course Details is a compact scoped workspace with a course hero, Tasks/Materials/Classes metrics, and Overview, Tasks, Materials, and Schedule tabs. It requests only records belonging to that course and keeps course uploads inside Materials.
+- The responsive Courses grid shows course initials, code, pending tasks, material count, and the nearest generated class occurrence. It also includes a compact full-width Personal Library entry for files without a course.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
 - Every course request uses the access token already restored by the authentication context; HTTP `401` clears the local session.
 
 ### Task Management flow
 
-- The protected Task list uses Today, Upcoming, All, and Completed views; compact Due Today and Overdue summaries; and Overdue, Today, Tomorrow, Later This Week, Later, No Due Date, and Completed groups.
-- A filter sheet composes course UUID, personal, priority, status, and due selections. Search, the local This Week projection, and sorting are layered over supported backend filters without adding API parameters.
+- The protected Task list uses a compact weekly selector, authenticated course tabs, search, and one continuous list of neutral academic task cards with relative deadline labels.
+- A filter sheet composes priority, status, and due selections while course UUID and Personal filtering remain in horizontal tabs. Search, the local This Week projection, and five local sort options are layered over supported backend filters without adding API parameters.
 - Add and edit screens share validated title, description, course, local due date/time, priority, and status fields.
 - A task may use “No course.” Due values entered in local device time are converted to ISO UTC; a date without a time uses 23:59 local time.
 - Completion and deletion update displayed state after the server confirms success, and Course data supplies names and codes for selectors and task cards.
@@ -152,8 +152,8 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### Home Dashboard flow
 
-- `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Settings. File routes remain protected and are reached contextually from Courses, Home, Quick Add, and Settings.
-- Home loads Courses, Tasks, today's Calendar Events and Class Schedules, and Files through their existing typed services.
+- `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Files. Profile, Settings, and Appearance remain protected secondary routes.
+- Home loads Courses, Tasks, a two-week Calendar Event and Class Schedule window, and Files through their existing typed services. It renders the nearest upcoming class/event, a seven-day strip, compact metrics, a chronological Today timeline including timed tasks, a bounded task focus list, course cards with next class, and recent materials.
 - Class occurrences reuse the Calendar's bounded local recurrence projection; manual events and classes are sorted together by start time.
 - Incomplete tasks are split into local Tasks Due Today and the next seven local dates, while recent Files are sorted newest first.
 - Each source settles independently, so successful sections remain visible with section-specific Retry states when another source fails.

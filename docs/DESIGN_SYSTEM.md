@@ -17,7 +17,7 @@ Settings supports Follow system, Light, and Dark display modes. Theme-pack and m
 - Spacing follows a 4-point scale. Screens use 20 points of horizontal padding, cards use 16 points, and forms use an 18-point vertical gap.
 - Controls use a 50-point standard height and never fall below a 44-point touch target.
 - Radius tokens cover compact controls, inputs, cards, feature heroes, and pill-shaped chips.
-- Typography tokens define body, caption, title, and subtitle sizes and line heights.
+- Typography uses a compact hierarchy: 28–30 point screen titles, 19–21 point section titles, 15–16 point card titles, 13–14 point body text, 11–12 point metadata, and 10–11 point navigation/chip labels.
 - Cards use the shared neutral surface, subtle border, and platform-appropriate shadow.
 - Course colors appear only as bars, dots, or swatches. They do not replace primary actions or neutral content surfaces.
 
@@ -41,7 +41,9 @@ Settings supports Follow system, Light, and Dark display modes. Theme-pack and m
 
 New UI should use theme colors through `useThemeColor` or `useAppearance`, and layout values through `DesignTokens`. Feature-specific colors are supporting indicators only. API calls, navigation, validation, and feature state remain outside these visual components.
 
-The main bottom navigation is limited to Home, Calendar, Tasks, Courses, and Settings. Profile and Appearance remain secondary routes; File Library is reached through Settings, course Materials, Personal Library, Home previews, and Quick Add.
+The main bottom navigation is limited to Home, Calendar, Tasks, Courses, and Files. Profile, Settings, and Appearance remain secondary routes. The floating Quick Add is visually smaller while preserving a 50-point target, and every tab retains at least a 44-point touch target.
+
+Course cards use responsive numeric widths, two-line title clamping, one-line metadata, and restrained course accents to prevent overlap on narrow devices. Home and Course Details use compact metrics, short card stacks, and horizontal previews to keep the workspace organized without turning every section into a full feature screen.
 
 Task filters and sorting use bottom sheets rather than inline dropdown-like rows. File Library, course Materials, and Personal Library share one material filter and presentation layer so category definitions and mutation refresh behavior stay consistent.
 

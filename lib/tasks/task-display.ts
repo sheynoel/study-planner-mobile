@@ -1,8 +1,8 @@
 import type { Task, TaskPriority, TaskStatus } from '@/lib/api/task.types';
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  TODO: 'To do',
-  IN_PROGRESS: 'In progress',
+  TODO: 'Assigned',
+  IN_PROGRESS: 'In Progress',
   COMPLETED: 'Completed',
 };
 

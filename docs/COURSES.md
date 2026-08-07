@@ -12,9 +12,10 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 - Local form validation matching backend maximum lengths and hexadecimal color requirements.
 - Confirmation-based deletion with immediate removal from displayed state.
 - List refresh after create, detail refresh after edit, and focus refreshes when returning to Course screens.
-- A two-column course-folder grid showing pending Tasks, File counts, and the next class when today’s dashboard projection contains one.
-- Course Details workspace tabs for Overview, Tasks, Materials, and Schedule.
-- A full-width Personal Library entry for files without a Course.
+- A responsive two-column course-folder grid (single-column on narrow phones) showing initials, code, pending Tasks, material counts, and the nearest class occurrence in the next two weeks.
+- A compact Course Details workspace with course identity, schedule summary, Tasks/Materials/Classes metrics, and Overview, Tasks, Materials, and Schedule tabs.
+- Overview surfaces course information, next class, nearest deadline, recent materials, and a two-meeting schedule preview. The full Schedule tab retains existing class-schedule create, detail, edit, and delete flows.
+- A compact full-width Personal Library entry for files without a Course.
 
 ## Route flow
 
@@ -55,6 +56,10 @@ Course Details requests `GET /tasks?courseId=:id`, `GET /files?courseId=:id`, an
 9. Delete a course, cancel once, then confirm deletion and verify the course is absent from the list.
 10. Sign out and confirm Course routes are no longer accessible.
 
-## Deferred work
+## Presentation rules
 
-Calendar events, class schedules, files, notes, notifications, SQLite, caching, and offline synchronization remain outside this phase. Task Management is documented separately in `docs/TASKS.md`.
+Course colors are restrained to initials, dots, and side accents. Names clamp to two lines and metadata to one line so long course names, codes, and localized next-class labels do not overlap adjacent cards. Next class is generated from the existing weekly schedule definitions in the same local-time manner as Calendar; no schedule records are duplicated.
+
+## Boundaries
+
+This presentation pass adds no backend contracts, duplicate calendar data, notifications, SQLite, caching, or offline synchronization. Tasks, materials, and class schedules continue to use their existing modules and routes.

@@ -26,14 +26,17 @@ export function NextScheduleCard({ item, onPress }: { item: CalendarItem; onPres
 }
 
 export function scheduleTime(item: CalendarItem): string {
-  if (item.isAllDay) return 'All day';
+  const today = new Date();
+  const itemDate = new Date(item.startAt);
+  const datePrefix = itemDate.toDateString() === today.toDateString() ? '' : `${itemDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · `;
+  if (item.isAllDay) return `${datePrefix}All day`;
   const start = formatLocalTime(item.startAt);
-  return item.endAt ? `${start} – ${formatLocalTime(item.endAt)}` : start;
+  return `${datePrefix}${item.endAt ? `${start} – ${formatLocalTime(item.endAt)}` : start}`;
 }
 
 const styles = StyleSheet.create({
   card: { borderRadius: DesignTokens.radius.lg },
-  content: { gap: DesignTokens.spacing.sm, padding: DesignTokens.layout.cardPadding },
+  content: { gap: DesignTokens.spacing.xs, padding: DesignTokens.layout.cardPadding },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: 9 },
   title: { flex: 1 },
   badge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },

@@ -11,6 +11,7 @@ export type DashboardSections = {
   tasksThisWeekCount: number;
   upcomingDeadlines: Task[];
   todaySchedule: CalendarItem[];
+  upcomingSchedule: CalendarItem[];
   nextScheduleItem: CalendarItem | null;
   classesTodayCount: number;
   recentFiles: FileRecord[];
@@ -35,8 +36,12 @@ export function buildDashboardSections(
     .filter((task) => isWithin(task.dueAt!, startTomorrow, endUpcomingWindow))
     .sort(compareTaskDueDates);
   const upcomingDeadlines = allUpcomingDeadlines.slice(0, DASHBOARD_TASK_LIMIT);
+  const todayKey = localDateKey(now);
   const todaySchedule = [...scheduleItems]
-    .filter((item) => item.sourceType !== 'task')
+    .filter((item) => item.date === todayKey && !(item.sourceType === 'task' && item.status === 'COMPLETED'))
+    .sort(compareScheduleItems);
+  const upcomingSchedule = [...scheduleItems]
+    .filter((item) => item.sourceType !== 'task' && isScheduleRemaining(item, now))
     .sort(compareScheduleItems);
 
   return {
@@ -45,22 +50,13 @@ export function buildDashboardSections(
     tasksThisWeekCount: allTasksDueToday.length + allUpcomingDeadlines.length,
     upcomingDeadlines,
     todaySchedule,
-    nextScheduleItem: findNextScheduleItem(todaySchedule, now),
+    upcomingSchedule,
+    nextScheduleItem: upcomingSchedule[0] ?? null,
     classesTodayCount: todaySchedule.filter((item) => item.sourceType === 'class_schedule').length,
     recentFiles: [...files]
       .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
       .slice(0, DASHBOARD_FILE_LIMIT),
   };
-}
-
-function findNextScheduleItem(items: CalendarItem[], now: Date): CalendarItem | null {
-  const nowTime = now.getTime();
-  return items.find((item) => {
-    if (item.isAllDay) return true;
-    const start = Date.parse(item.startAt);
-    const end = Date.parse(item.endAt ?? item.startAt);
-    return start >= nowTime || end >= nowTime;
-  }) ?? null;
 }
 
 function compareTaskDueDates(left: Task, right: Task): number {
@@ -69,9 +65,21 @@ function compareTaskDueDates(left: Task, right: Task): number {
 }
 
 function compareScheduleItems(left: CalendarItem, right: CalendarItem): number {
+  if (left.date !== right.date) return left.date.localeCompare(right.date);
   if (left.isAllDay !== right.isAllDay) return left.isAllDay ? -1 : 1;
   const difference = Date.parse(left.startAt) - Date.parse(right.startAt);
   return difference || left.id.localeCompare(right.id);
+}
+
+function isScheduleRemaining(item: CalendarItem, now: Date): boolean {
+  if (item.date > localDateKey(now)) return true;
+  if (item.date < localDateKey(now)) return false;
+  if (item.isAllDay) return true;
+  return Date.parse(item.endAt ?? item.startAt) >= now.getTime();
+}
+
+function localDateKey(value: Date): string {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
 }
 
 function startOfLocalDay(value: Date): Date {

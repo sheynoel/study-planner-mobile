@@ -89,15 +89,14 @@ export function DashboardProvider({ children }: PropsWithChildren) {
   const scheduleItems = useMemo<CalendarItem[]>(() => {
     const now = snapshotTime.current;
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const date = toLocalDateKey(now);
-    return normalizeCalendarItems(events, [], courses, schedules, {
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14, 23, 59, 59, 999);
+    return normalizeCalendarItems(events, tasks, courses, schedules, {
       from: start.toISOString(),
       to: end.toISOString(),
-      firstDate: date,
-      lastDate: date,
-    }).filter((item) => item.date === date);
-  }, [courses, events, schedules]);
+      firstDate: toLocalDateKey(start),
+      lastDate: toLocalDateKey(end),
+    });
+  }, [courses, events, schedules, tasks]);
 
   const sections = useMemo(
     () => buildDashboardSections(tasks, scheduleItems, files, snapshotTime.current),

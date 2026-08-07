@@ -51,7 +51,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   link: {
-    lineHeight: 30,
-    fontSize: 16,
+    lineHeight: 20,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
