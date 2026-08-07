@@ -13,7 +13,7 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 - Confirmation-based deletion with immediate removal from displayed state.
 - List refresh after create, detail refresh after edit, and focus refreshes when returning to Course screens.
 - A responsive two-column course-folder grid (single-column on narrow phones) showing initials, code, pending Tasks, material counts, and the nearest class occurrence in the next two weeks.
-- A compact Course Details workspace with course identity, schedule summary, Tasks/Materials/Classes metrics, and Overview, Tasks, Materials, and Schedule tabs.
+- A compact Course Details workspace with course identity, schedule summary, Tasks/Materials/Classes metrics, and horizontally scrollable Overview, Tasks, Materials, Schedule, and Notes tabs.
 - Overview surfaces course information, next class, nearest deadline, recent materials, and a two-meeting schedule preview. The full Schedule tab retains existing class-schedule create, detail, edit, and delete flows.
 - A compact full-width Personal Library entry for files without a Course.
 
@@ -28,7 +28,7 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 
 All routes remain inside the authenticated Expo Router group. Courses are available from the five-item bottom navigation, while a missing or expired token is handled through the existing authentication guard and session cleanup.
 
-Course Details requests `GET /tasks?courseId=:id`, `GET /files?courseId=:id`, and `GET /class-schedules?courseId=:id`; its tabs do not request unrelated course records. Overview shows the nearest deadline, next generated class occurrence, recent materials, and a schedule preview. Materials reuses the shared File Library behavior with the Course fixed to its UUID.
+Course Details requests `GET /tasks?courseId=:id`, `GET /files?courseId=:id`, `GET /class-schedules?courseId=:id`, and `GET /notes?courseId=:id`; its tabs do not request unrelated course records. Overview shows the nearest deadline, next generated class occurrence, recent materials, and a schedule preview. Materials reuses the shared File Library behavior with the Course fixed to its UUID.
 
 ## Backend contract assumptions
 

@@ -10,6 +10,7 @@ import {
 
 import { ErrorBanner, FormField, SubmitButton } from '@/components/auth/auth-form';
 import { ThemedText } from '@/components/themed-text';
+import { CourseScheduleEditor } from '@/components/courses/course-schedule-editor';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
@@ -20,23 +21,28 @@ import {
   type CourseFormValues,
   validateCourseForm,
 } from '@/lib/courses/course-form';
+import { emptyClassScheduleForm, type ClassScheduleFormErrors, type ClassScheduleFormValues, validateClassScheduleForm } from '@/lib/class-schedules/class-schedule-form';
 
 export function CourseForm({
   initialValues,
   loadingLabel,
   onSubmit,
   submitLabel,
+  withSchedules = false,
 }: {
   initialValues: CourseFormValues;
   loadingLabel: string;
-  onSubmit: (values: CourseFormValues) => Promise<void>;
+  onSubmit: (values: CourseFormValues, schedules: ClassScheduleFormValues[]) => Promise<void>;
   submitLabel: string;
+  withSchedules?: boolean;
 }) {
   const { colors } = useAppearance();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<CourseFormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [schedules, setSchedules] = useState<ClassScheduleFormValues[]>([]);
+  const [scheduleErrors, setScheduleErrors] = useState<ClassScheduleFormErrors[]>([]);
 
   function updateField(field: CourseFormField, value: string) {
     setValues((currentValues) => ({ ...currentValues, [field]: value }));
@@ -50,9 +56,11 @@ export function CourseForm({
     }
 
     const nextErrors = validateCourseForm(values);
+    const nextScheduleErrors = schedules.map(validateClassScheduleForm);
 
-    if (Object.keys(nextErrors).length > 0) {
+    if (Object.keys(nextErrors).length > 0 || nextScheduleErrors.some((errors) => Object.keys(errors).length > 0)) {
       setErrors(nextErrors);
+      setScheduleErrors(nextScheduleErrors);
       return;
     }
 
@@ -60,7 +68,7 @@ export function CourseForm({
     setIsSubmitting(true);
 
     try {
-      await onSubmit(values);
+      await onSubmit(values, schedules);
     } catch (error) {
       setApiError(getApiErrorMessage(error));
     } finally {
@@ -153,6 +161,8 @@ export function CourseForm({
             </ThemedText>
           ) : null}
         </View>
+
+        {withSchedules ? <CourseScheduleEditor errors={scheduleErrors} onAdd={() => { setSchedules((current) => [...current, emptyClassScheduleForm()]); setScheduleErrors((current) => [...current, {}]); }} onChange={(index, schedule) => { setSchedules((current) => current.map((item, itemIndex) => itemIndex === index ? schedule : item)); setScheduleErrors((current) => current.map((item, itemIndex) => itemIndex === index ? {} : item)); }} onRemove={(index) => { setSchedules((current) => current.filter((_item, itemIndex) => itemIndex !== index)); setScheduleErrors((current) => current.filter((_item, itemIndex) => itemIndex !== index)); }} schedules={schedules} /> : null}
 
         <SubmitButton
           disabled={isSubmitting}

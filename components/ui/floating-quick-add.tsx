@@ -13,6 +13,7 @@ import { classScheduleRoutes } from '@/lib/class-schedules/routes';
 import { courseRoutes } from '@/lib/courses/routes';
 import { fileRoutes } from '@/lib/files/routes';
 import { taskRoutes } from '@/lib/tasks/routes';
+import { noteRoutes } from '@/lib/notes/routes';
 
 export function FloatingQuickAdd() {
   const insets = useSafeAreaInsets();
@@ -23,6 +24,7 @@ export function FloatingQuickAdd() {
   const baseActions: SheetAction[] = [
     { icon: 'checkbox-outline', label: 'Task', description: 'Add personal or course work', onPress: () => router.push(taskRoutes.add) },
     { icon: 'calendar-outline', label: 'Event', description: 'Plan a date or study session', onPress: () => router.push(calendarRoutes.add) },
+    { icon: 'document-text-outline', label: 'Note', description: 'Remember something without making a task', onPress: () => router.push(noteRoutes.add) },
     { icon: 'folder-open-outline', label: 'Course', description: 'Create an academic workspace', onPress: () => router.push(courseRoutes.add) },
     { icon: 'cloud-upload-outline', label: 'Upload file', description: 'Add a study material', onPress: () => router.push(fileRoutes.upload) },
     { icon: 'time-outline', label: 'Class schedule', description: courses.length ? 'Choose a course first' : 'Create a course first', closeOnPress: courses.length === 0, onPress: () => courses.length ? setChoosingCourse(true) : router.push(courseRoutes.add) },

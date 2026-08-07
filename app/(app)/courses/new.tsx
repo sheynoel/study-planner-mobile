@@ -1,24 +1,38 @@
 import { router } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
 import { CourseForm } from '@/components/courses/course-form';
 import { ThemedView } from '@/components/themed-view';
 import { useCourses } from '@/contexts/course-context';
+import { useClassSchedules } from '@/contexts/class-schedule-context';
 import {
   EMPTY_COURSE_FORM,
   type CourseFormValues,
   toCreateCourseRequest,
 } from '@/lib/courses/course-form';
 import { courseRoutes } from '@/lib/courses/routes';
+import { toCreateScheduleRequest, type ClassScheduleFormValues } from '@/lib/class-schedules/class-schedule-form';
+import { getApiErrorMessage } from '@/lib/api/api-client';
+import { createCourseWithSchedules } from '@/lib/courses/course-creation';
 
 export default function AddCourseScreen() {
   const { createCourse } = useCourses();
+  const { createSchedule } = useClassSchedules();
 
-  async function handleCreate(values: CourseFormValues) {
-    const course = await createCourse(toCreateCourseRequest(values));
-    router.replace(courseRoutes.details(course.id));
+  async function handleCreate(values: CourseFormValues, schedules: ClassScheduleFormValues[]) {
+    const result = await createCourseWithSchedules(
+      () => createCourse(toCreateCourseRequest(values)),
+      schedules,
+      (courseId, schedule) => createSchedule(toCreateScheduleRequest(courseId, schedule)),
+    );
+    if (result.scheduleError) {
+      Alert.alert('Course created; schedule needs attention', `${result.createdScheduleCount} of ${schedules.length} class meetings were added. The course is safe. Review its Schedule tab to add the remaining meeting.\n\n${getApiErrorMessage(result.scheduleError)}`);
+      router.replace(courseRoutes.workspace(result.course.id, 'schedule'));
+      return;
+    }
+    router.replace(courseRoutes.details(result.course.id));
   }
 
   return (
@@ -34,6 +48,7 @@ export default function AddCourseScreen() {
           loadingLabel="Creating course..."
           onSubmit={handleCreate}
           submitLabel="Create course"
+          withSchedules
         />
       </SafeAreaView>
     </ThemedView>

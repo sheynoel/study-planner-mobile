@@ -1,5 +1,6 @@
 import type { CalendarItem } from '@/lib/api/calendar-event.types';
 import type { Task, TaskPriority, TaskStatus } from '@/lib/api/task.types';
+import type { Note } from '@/lib/api/note.types';
 
 export type HomeTaskTime = 'any' | 'today' | 'this_week' | 'this_month';
 export type HomeTaskCourse = string | 'personal' | undefined;
@@ -30,13 +31,12 @@ export function getClassTimeState(item: Pick<CalendarItem, 'startAt' | 'endAt'>,
   return 'upcoming';
 }
 
-export function getClassReminders(tasks: Task[], courseId: string | null, now = new Date()): Task[] {
+export function getClassNotes(notes: Note[], courseId: string | null, now = new Date()): Note[] {
   if (!courseId) return [];
   const today = toLocalDateKey(now);
-  return tasks
-    .filter((task) => task.courseId === courseId && task.status !== 'COMPLETED' && task.dueAt !== null && toLocalDateKey(task.dueAt) === today)
-    .sort(compareHomeTasks)
-    .slice(0, 2);
+  return notes
+    .filter((note) => note.courseId === courseId && note.relevantAt !== null && toLocalDateKey(note.relevantAt) === today)
+    .sort((left, right) => Date.parse(left.relevantAt!) - Date.parse(right.relevantAt!) || left.title.localeCompare(right.title));
 }
 
 export function filterHomeTasks(tasks: Task[], filters: HomeTaskFilters, now = new Date()): Task[] {

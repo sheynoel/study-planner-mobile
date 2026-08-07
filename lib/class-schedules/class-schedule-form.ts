@@ -15,7 +15,9 @@ export type ClassScheduleFormErrors = Partial<Record<ClassScheduleFormField, str
 
 export function emptyClassScheduleForm(today = new Date()): ClassScheduleFormValues {
   const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  return { weekday: 'MONDAY', startTime: '09:00', endTime: '10:00', room: '', startDate: date, endDate: date };
+  const semesterEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 120);
+  const endDate = `${semesterEnd.getFullYear()}-${String(semesterEnd.getMonth() + 1).padStart(2, '0')}-${String(semesterEnd.getDate()).padStart(2, '0')}`;
+  return { weekday: 'MONDAY', startTime: '09:00', endTime: '10:00', room: '', startDate: date, endDate };
 }
 
 export function classScheduleToForm(schedule: ClassSchedule): ClassScheduleFormValues {

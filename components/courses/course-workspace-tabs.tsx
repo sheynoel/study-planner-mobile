@@ -5,7 +5,7 @@ import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import type { CourseWorkspaceTab } from '@/lib/courses/routes';
 
-const TABS: readonly { label: string; value: CourseWorkspaceTab }[] = [{ label: 'Overview', value: 'overview' }, { label: 'Tasks', value: 'tasks' }, { label: 'Materials', value: 'materials' }, { label: 'Schedule', value: 'schedule' }];
+const TABS: readonly { label: string; value: CourseWorkspaceTab }[] = [{ label: 'Overview', value: 'overview' }, { label: 'Tasks', value: 'tasks' }, { label: 'Materials', value: 'materials' }, { label: 'Schedule', value: 'schedule' }, { label: 'Notes', value: 'notes' }];
 
 export function CourseWorkspaceTabs({ onChange, value }: { onChange: (value: CourseWorkspaceTab) => void; value: CourseWorkspaceTab }) {
   const { colors } = useAppearance();

@@ -21,10 +21,11 @@ import { useAuth } from '@/contexts/auth-context';
 import { useCalendar } from '@/contexts/calendar-context';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { useHome } from '@/contexts/home-context';
+import { useNotes } from '@/contexts/note-context';
 import { addMonths, getMonthRange, toLocalDateKey } from '@/lib/calendar/calendar-date';
 import { calendarRoutes } from '@/lib/calendar/routes';
 import { courseRoutes } from '@/lib/courses/routes';
-import { activeHomeTaskFilterCount, countSelectedDateItems, DEFAULT_HOME_TASK_FILTERS, filterHomeTasks, getClassReminders, getClassTimeState, getTodayClasses, type HomeTaskFilters } from '@/lib/dashboard/home-dashboard';
+import { activeHomeTaskFilterCount, countSelectedDateItems, DEFAULT_HOME_TASK_FILTERS, filterHomeTasks, getClassNotes, getClassTimeState, getTodayClasses, type HomeTaskFilters } from '@/lib/dashboard/home-dashboard';
 import { taskRoutes } from '@/lib/tasks/routes';
 
 export default function HomeDashboardScreen() {
@@ -32,6 +33,7 @@ export default function HomeDashboardScreen() {
   const dashboard = useDashboard();
   const calendar = useCalendar();
   const { expanded, toggleSection } = useHome();
+  const { listError: noteError, loadNotes, notes } = useNotes();
   const { width: screenWidth } = useWindowDimensions();
   const [month, setMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateKey(new Date()));
@@ -45,7 +47,8 @@ export default function HomeDashboardScreen() {
   useFocusEffect(useCallback(() => {
     setNow(new Date());
     void refreshDashboard();
-  }, [refreshDashboard]));
+    void loadNotes().catch(() => undefined);
+  }, [loadNotes, refreshDashboard]));
 
   useFocusEffect(useCallback(() => {
     void loadCalendarRange(range).catch(() => undefined);
@@ -61,7 +64,7 @@ export default function HomeDashboardScreen() {
   const todayClasses = useMemo(() => getTodayClasses(dashboard.todaySchedule, now), [dashboard.todaySchedule, now]);
   const visibleTasks = useMemo(() => filterHomeTasks(dashboard.tasks, taskFilters, now), [dashboard.tasks, now, taskFilters]);
   const selectedCounts = useMemo(() => countSelectedDateItems(calendar.items, selectedDate), [calendar.items, selectedDate]);
-  const classCardWidth = Math.min(280, Math.max(220, screenWidth - 88));
+  const classCardWidth = Math.min(165, Math.max(135, (screenWidth - 56) * 0.47));
   const filterCount = activeHomeTaskFilterCount(taskFilters);
 
   function changeMonth(amount: number) {
@@ -71,7 +74,7 @@ export default function HomeDashboardScreen() {
   }
 
   async function refreshAll() {
-    await Promise.allSettled([dashboard.refresh(), calendar.loadRange(range)]);
+    await Promise.allSettled([dashboard.refresh(), calendar.loadRange(range), loadNotes()]);
   }
 
   return <AppScreen footer={<AppSectionTabs active="home" />}>
@@ -79,10 +82,10 @@ export default function HomeDashboardScreen() {
     {dashboard.isLoading && !dashboard.hasLoaded ? <View style={styles.padded}><LoadingSkeleton rows={4} /></View> : null}
     {dashboard.hasLoaded ? <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl onRefresh={() => void refreshAll()} refreshing={dashboard.isRefreshing} />}>
       <CollapsibleHomeSection expanded={expanded.classes} onToggle={() => toggleSection('classes')} title="Classes Today">
-        {dashboard.errors.schedules || dashboard.errors.courses ? <ErrorBanner message={dashboard.errors.schedules ?? dashboard.errors.courses ?? null} /> : null}
+        {dashboard.errors.schedules || dashboard.errors.courses || noteError ? <ErrorBanner message={dashboard.errors.schedules ?? dashboard.errors.courses ?? noteError ?? null} /> : null}
         {todayClasses.length ? <ScrollView contentContainerStyle={styles.classRow} horizontal showsHorizontalScrollIndicator={false}>{todayClasses.map((item) => {
           const course = item.courseId ? courseById.get(item.courseId) : undefined;
-          return <TodayClassCard courseCode={course?.code || course?.name || 'Class'} item={item} key={item.id} onPress={() => { if (item.courseId) router.push(courseRoutes.details(item.courseId)); }} reminders={getClassReminders(dashboard.tasks, item.courseId, now)} state={getClassTimeState(item, now)} width={classCardWidth} />;
+          return <TodayClassCard courseCode={course?.code || course?.name || 'Class'} item={item} key={item.id} notes={getClassNotes(notes, item.courseId, now)} onPress={() => { if (item.courseId) router.push(courseRoutes.details(item.courseId)); }} state={getClassTimeState(item, now)} width={classCardWidth} />;
         })}</ScrollView> : <CalmEmptyState label="No classes today" />}
       </CollapsibleHomeSection>
 

@@ -1,6 +1,6 @@
 import type { Href } from 'expo-router';
 
-export type CourseWorkspaceTab = 'overview' | 'tasks' | 'materials' | 'schedule';
+export type CourseWorkspaceTab = 'overview' | 'tasks' | 'materials' | 'schedule' | 'notes';
 
 export const courseRoutes = {
   add: '/courses/new' as Href,

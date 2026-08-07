@@ -11,6 +11,7 @@ import { CourseWorkspaceTabs } from '@/components/courses/course-workspace-tabs'
 import { FileLibrary } from '@/components/files/file-library';
 import { FilePreviewCard } from '@/components/files/file-preview-card';
 import { TaskPreviewCard } from '@/components/tasks/task-preview-card';
+import { NoteCard } from '@/components/notes/note-card';
 import { ThemedText } from '@/components/themed-text';
 import { AppButton } from '@/components/ui/app-button';
 import { AppScreen } from '@/components/ui/app-screen';
@@ -25,6 +26,7 @@ import { useClassSchedules } from '@/contexts/class-schedule-context';
 import { useCourses } from '@/contexts/course-context';
 import { useFiles } from '@/contexts/file-context';
 import { useTasks } from '@/contexts/task-context';
+import { useNotes } from '@/contexts/note-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import type { CalendarItem } from '@/lib/api/calendar-event.types';
 import type { Course } from '@/lib/api/course.types';
@@ -37,8 +39,9 @@ import { courseRoutes, type CourseWorkspaceTab } from '@/lib/courses/routes';
 import { fileRoutes } from '@/lib/files/routes';
 import { formatTaskDate } from '@/lib/tasks/task-display';
 import { taskRoutes } from '@/lib/tasks/routes';
+import { noteRoutes } from '@/lib/notes/routes';
 
-const WORKSPACE_TABS: readonly CourseWorkspaceTab[] = ['overview', 'tasks', 'materials', 'schedule'];
+const WORKSPACE_TABS: readonly CourseWorkspaceTab[] = ['overview', 'tasks', 'materials', 'schedule', 'notes'];
 
 export default function CourseDetailsScreen() {
   const params = useLocalSearchParams<{ id?: string | string[]; tab?: string | string[] }>();
@@ -48,6 +51,7 @@ export default function CourseDetailsScreen() {
   const { loadCourseSchedules, schedules } = useClassSchedules();
   const { loadFiles } = useFiles();
   const { completeTask, loadTasks, tasks } = useTasks();
+  const { loadNotes, notes } = useNotes();
   const [course, setCourse] = useState<Course | null>(() => courseId ? getCachedCourse(courseId) ?? null : null);
   const [courseFiles, setCourseFiles] = useState<FileRecord[]>([]);
   const [tab, setTab] = useState<CourseWorkspaceTab>(() => isWorkspaceTab(routeTab) ? routeTab : 'overview');
@@ -57,6 +61,7 @@ export default function CourseDetailsScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [completingIds, setCompletingIds] = useState<Set<string>>(() => new Set());
   const courseTasks = useMemo(() => tasks.filter((task) => task.courseId === courseId), [courseId, tasks]);
+  const courseNotes = useMemo(() => notes.filter((note) => note.courseId === courseId), [courseId, notes]);
   const pendingTasks = useMemo(() => courseTasks.filter((task) => task.status !== 'COMPLETED').sort((a, b) => dueTime(a) - dueTime(b)), [courseTasks]);
   const nextClass = useMemo(() => course ? findNextClassOccurrence(schedules, [course]) : null, [course, schedules]);
   const scheduleSummary = useMemo(() => formatScheduleSummary(schedules.length, nextClass), [nextClass, schedules.length]);
@@ -67,12 +72,12 @@ export default function CourseDetailsScreen() {
     if (!courseId) { setLoadError('This course link is invalid.'); setIsLoading(false); return; }
     setLoadError(null); setIsLoading(true);
     try {
-      const [loaded, , loadedFiles] = await Promise.all([loadCourse(courseId), loadTasks({ courseId }), loadFiles({ courseId }), loadCourseSchedules(courseId)]);
+      const [loaded, , loadedFiles] = await Promise.all([loadCourse(courseId), loadTasks({ courseId }), loadFiles({ courseId }), loadCourseSchedules(courseId), loadNotes({ courseId })]);
       setCourse(loaded);
       setCourseFiles(loadedFiles.filter((file) => file.courseId === courseId));
     } catch (error) { setLoadError(getApiErrorMessage(error)); }
     finally { setIsLoading(false); }
-  }, [courseId, loadCourse, loadCourseSchedules, loadFiles, loadTasks]);
+  }, [courseId, loadCourse, loadCourseSchedules, loadFiles, loadNotes, loadTasks]);
 
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
 
@@ -103,8 +108,9 @@ export default function CourseDetailsScreen() {
       {tab === 'tasks' ? <View style={styles.section}><SectionHeader title="Course tasks" />{courseTasks.length ? courseTasks.map((task) => <TaskPreviewCard courseName={course.name} isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <BentoCard tone="subtle"><ThemedText>No tasks belong to this course yet.</ThemedText></BentoCard>}</View> : null}
       {tab === 'materials' ? <FileLibrary scope={{ kind: 'course', courseId: course.id, courseName: course.name }} /> : null}
       {tab === 'schedule' ? <View style={styles.section}><SectionHeader actionLabel="Add class" onAction={() => router.push(classScheduleRoutes.add(course.id))} title="Weekly schedule" />{schedules.length ? schedules.map((schedule) => <ClassScheduleCard course={course} key={schedule.id} onPress={() => router.push(classScheduleRoutes.details(schedule.id))} schedule={schedule} />) : <BentoCard tone="subtle"><ThemedText>No weekly class meetings have been added.</ThemedText></BentoCard>}</View> : null}
+      {tab === 'notes' ? <View style={styles.section}><SectionHeader actionLabel="Add note" onAction={() => router.push(noteRoutes.addForCourse(course.id))} title="Course notes" />{courseNotes.length ? courseNotes.map((note) => <NoteCard key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} />) : <BentoCard tone="subtle"><ThemedText>No notes belong to this course yet.</ThemedText></BentoCard>}</View> : null}
       <ErrorBanner message={deleteError ?? loadError} />
-      <AppButton label={isDeleting ? 'Deleting course...' : 'Delete course'} loading={isDeleting} onPress={() => showDestructiveConfirmation({ title: 'Delete course?', message: 'This removes the course permanently. Tasks and files are preserved as personal items by the backend.', onConfirm: () => void performDelete() })} variant="danger" />
+      <AppButton label={isDeleting ? 'Deleting course...' : 'Delete course'} loading={isDeleting} onPress={() => showDestructiveConfirmation({ title: 'Delete course?', message: 'This removes the course permanently. Tasks, notes, and files are preserved as personal items by the backend.', onConfirm: () => void performDelete() })} variant="danger" />
     </ScrollView> : null}
   </AppScreen>;
 }

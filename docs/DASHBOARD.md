@@ -13,8 +13,8 @@ The five bottom navigation actions remain Home, Calendar, Tasks, Courses, and Se
 - Existing two-week dashboard data supplies locally generated class occurrences for today.
 - Occurrences are sorted by start time and rendered in a horizontal compact-card row.
 - Local wall-clock start/end values determine past, current, and upcoming emphasis; a current class receives a subtle `Now` treatment.
-- A class card may show at most two incomplete tasks that have the same course UUID and a due timestamp on the same local date.
-- Tasks shown as class reminders remain present in the Tasks section.
+- A class card may show at most two Note titles when the exact course UUID matches and `relevantAt` falls on the same local date, followed by a compact remaining count.
+- Tasks remain in the Tasks section and are never converted into class Notes.
 
 ## Home calendar
 

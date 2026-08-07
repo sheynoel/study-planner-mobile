@@ -7,6 +7,7 @@ import { TaskProvider } from '@/contexts/task-context';
 import { FileProvider } from '@/contexts/file-context';
 import { DashboardProvider } from '@/contexts/dashboard-context';
 import { HomeProvider } from '@/contexts/home-context';
+import { NoteProvider } from '@/contexts/note-context';
 
 export default function AppLayout() {
   return (
@@ -16,9 +17,11 @@ export default function AppLayout() {
           <FileProvider>
             <TaskProvider>
               <DashboardProvider>
-                <HomeProvider>
-                  <Stack screenOptions={{ headerShown: false }} />
-                </HomeProvider>
+                <NoteProvider>
+                  <HomeProvider>
+                    <Stack screenOptions={{ headerShown: false }} />
+                  </HomeProvider>
+                </NoteProvider>
               </DashboardProvider>
             </TaskProvider>
           </FileProvider>

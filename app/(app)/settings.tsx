@@ -14,6 +14,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { DesignTokens } from '@/constants/theme';
 import { getAuthErrorMessage, useAuth } from '@/contexts/auth-context';
 import { fileRoutes } from '@/lib/files/routes';
+import { noteRoutes } from '@/lib/notes/routes';
 
 export default function SettingsScreen() {
   const { logout, user } = useAuth();
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
       <SettingsRow description="Your student card and planner activity" icon="person-outline" label="Profile" onPress={() => router.push('/profile')} />
       <SettingsRow description="Theme pack, light, dark, or system mode" icon="color-palette-outline" label="Appearance" onPress={() => router.push('/appearance')} />
       <SettingsRow description="Browse every course and personal material" icon="library-outline" label="File Library" onPress={() => router.push(fileRoutes.list)} />
+      <SettingsRow description="Personal and course information to remember" icon="document-text-outline" label="Notes" onPress={() => router.push(noteRoutes.list)} />
       <SectionHeader title="Preferences" />
       <SettingsRow description="Reminders are not implemented yet" disabled icon="notifications-outline" label="Notifications" trailing="Coming soon" />
       <SettingsRow description="Week start and planner defaults are not implemented" disabled icon="calendar-outline" label="Calendar preferences" trailing="Coming soon" />

@@ -47,6 +47,7 @@ Only visible-range occurrences are generated. No `POST /calendar-events` call is
 - Duplicate schedules return HTTP `409` with `CLASS_SCHEDULE_DUPLICATE`; overlapping schedules return HTTP `409` with `CLASS_SCHEDULE_CONFLICT` and a user-facing conflict message.
 - Missing or unowned courses and schedules use the backend's non-disclosing HTTP `404` responses.
 - Each separate weekday meeting is one schedule record.
+- Add Course may optionally collect several meeting forms and create those same schedule records sequentially after Course creation. A failed later meeting never rolls back or hides the confirmed Course; the UI reports the partial count and opens the Schedule tab for recovery.
 
 No backend contract mismatch was found during implementation.
 

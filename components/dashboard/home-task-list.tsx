@@ -10,7 +10,7 @@ import type { Task } from '@/lib/api/task.types';
 export function HomeTaskList({ courses, onOpenTask, tasks }: { courses: Course[]; onOpenTask: (task: Task) => void; tasks: Task[] }) {
   const { colors } = useAppearance();
   const courseLabels = new Map(courses.map((course) => [course.id, course.code || course.name]));
-  if (!tasks.length) return <View style={[styles.empty, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}><ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>No tasks match these filters.</ThemedText></View>;
+  if (!tasks.length) return <View style={[styles.empty, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}><ThemedText style={[styles.emptyText, { color: colors.textSecondary }]}>You&apos;re clear for now.</ThemedText></View>;
   return <View style={styles.list}>{tasks.map((task) => <HomeTaskCard courseLabel={task.courseId ? courseLabels.get(task.courseId) ?? 'Course unavailable' : 'Personal'} key={task.id} onPress={() => onOpenTask(task)} task={task} />)}</View>;
 }
 

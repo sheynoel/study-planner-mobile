@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive student workspace: a compact day-focused Home, task lists, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Note, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive student workspace: a compact day-focused Home, task lists, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -20,6 +20,7 @@ The sibling `study-planner-api` repository owns the product and backend planning
 - [`docs/CLASS_SCHEDULES.md`](docs/CLASS_SCHEDULES.md) documents weekly class management and local calendar occurrence generation.
 - [`docs/FILES.md`](docs/FILES.md) documents mobile picking, multipart upload, authenticated download, and metadata management.
 - [`docs/DASHBOARD.md`](docs/DASHBOARD.md) documents dashboard aggregation, local date ranges, partial failures, and refresh behavior.
+- [`docs/NOTES.md`](docs/NOTES.md) documents lightweight Notes, course context, and Home class matching.
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) documents the shared visual tokens, components, accessibility rules, and five-tab navigation constraint.
 - [`docs/UI_REDESIGN.md`](docs/UI_REDESIGN.md) records the redesign audit, migration boundaries, and completed Bento workspace coverage.
 
@@ -47,6 +48,7 @@ study-planner-mobile/
 |-- components/class-schedules/ Reusable class schedule cards, forms, weekday, and time controls
 |-- components/files/      Reusable file cards, forms, filters, picker, and download UI
 |-- components/tasks/      Reusable task cards, forms, filters, and chips
+|-- components/notes/      Lightweight Note forms and compact note rows
 |-- components/settings/   Appearance controls and digital student profile card
 |-- components/ui/         Shared buttons, cards, selectors, section headers, dialogs, and async states
 |-- contexts/              Authentication and planner feature state lifecycles
@@ -61,6 +63,7 @@ study-planner-mobile/
 |-- lib/files/             Picker, display, download/share, and route logic
 |-- lib/dashboard/         Dashboard service orchestration and local projections
 |-- lib/tasks/             Task form, display, filtering, and route logic
+|-- lib/notes/             Note form mapping, validation, and routes
 |-- lib/config/            Mobile environment configuration
 |-- docs/                  Mobile implementation documentation
 |-- scripts/               create-expo-app reset utility
@@ -107,7 +110,7 @@ The current backend does not configure CORS, so browser authentication requests 
 ### Course Management flow
 
 - The protected `/courses` route lists only the authenticated user's courses and supports retry, empty, loading, and populated states.
-- Add and edit screens share validated fields for name, code, description, instructor, room, and a predefined color palette.
+- Add and edit screens share validated fields for name, code, description, instructor, room, and a predefined color palette. Add Course may optionally create one or more existing weekly ClassSchedule records after the Course succeeds; partial schedule failures preserve the Course and report how many meetings were created.
 - Course Details is a compact scoped workspace with a course hero, Tasks/Materials/Classes metrics, and Overview, Tasks, Materials, and Schedule tabs. It requests only records belonging to that course and keeps course uploads inside Materials.
 - The responsive Courses grid shows course initials, code, pending tasks, material count, and the nearest generated class occurrence. It also includes a compact full-width Personal Library entry for files without a course.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
@@ -154,7 +157,7 @@ The current backend does not configure CORS, so browser authentication requests 
 
 - `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Settings. File Library remains available from Settings and course workspaces.
 - Home is ordered as greeting/date, Classes Today, a compact full-month Calendar, and one continuous Tasks list. The three academic sections collapse independently and retain that state while navigating during the app session.
-- Today's recurring class occurrences are sorted by local start time, distinguish past/current/upcoming states, and may show up to two incomplete same-course tasks due today.
+- Today's recurring class occurrences are sorted by local start time, distinguish past/current/upcoming states, and may show up to two exact-course Notes whose `relevantAt` is today in local time.
 - The Home calendar reuses the existing monthly Calendar provider and normalized event, deadline, and class-occurrence data. Selected dates stay on Home and show compact activity counts.
 - Home tasks default to Assigned and In Progress, sort overdue and dated work before undated work, and use one bottom-sheet filter for status, time, course UUID/Personal, and priority. Completed tasks appear only when selected.
 - Focus refreshes, pull-to-refresh, existing Task Details mutations, and section-scoped errors preserve the established data lifecycle.
