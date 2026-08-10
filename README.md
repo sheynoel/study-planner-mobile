@@ -111,8 +111,8 @@ The current backend does not configure CORS, so browser authentication requests 
 
 - The protected `/courses` route lists only the authenticated user's courses and supports retry, empty, loading, and populated states.
 - Add Course is a full-screen modal with Main Title, Subtitle, optional details, preset/custom color, and grouped schedules. Mobile expands a multi-weekday schedule block into the existing one-weekday ClassSchedule requests after the Course succeeds; edit keeps the existing contract-compatible fields.
-- Course Details is a compact scoped workspace with a course hero, immediately visible Tasks, one combined Events & Notes board, a schedule summary sheet, and a short recent-Materials preview. It requests only records belonging to that course and keeps full course uploads inside Materials.
-- The responsive Courses screen uses a fixed-height two-column folder grid showing only title, subtitle, course color, and a nonzero active-task badge. A compact Personal Library utility tile sits above the grid for files without a course.
+- Course Details is a compact scoped workspace with a course hero, immediately visible Tasks, one combined Events & Notes board, a schedule summary sheet, and a short recent-Materials preview. Destructive course deletion is intentionally absent here and appears only in the confirmed Danger Zone at the bottom of Edit Course.
+- The responsive Courses screen uses a fixed-height two-column folder grid showing only title, subtitle, course color, and a nonzero active-task badge. A compact full-width Personal Library utility row sits above—not inside—the grid for files without a course.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
 - Every course request uses the access token already restored by the authentication context; HTTP `401` clears the local session.
 
@@ -127,13 +127,14 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### Calendar Management flow
 
-- The protected Calendar route displays a dependency-free month grid with distinct event, task-deadline, and class-meeting markers and a selected-day agenda.
+- The protected Calendar route uses `react-native-calendars` for a six-week month overview with fixed-height cells, up to two tiny item previews, `+N` overflow, and a compact selected-day timeline.
 - Calendar events are requested only for the visible local month using inclusive `from` and `to` ISO timestamps. Tasks are loaded from the existing Task endpoint and only records with `dueAt` are projected into the calendar.
-- Event, task, and class records remain separate source types and open their respective detail routes.
+- Event, task, class, and dated Note records remain separate source types and open their respective detail routes. Undated Notes are excluded.
 - Add and edit screens share validation for title, optional description/course/location/end/color, required start, optional end, and all-day behavior. Their date and timed-event controls use the reusable calendar and 12-hour picker fields.
 - Local date/time inputs are converted to ISO UTC timestamps without fixed offsets. API timestamps are displayed in the device timezone.
 - The calendar refreshes on visible-month changes and whenever it regains focus after event creation, editing, or deletion.
-- The planner month grid remains the existing React Native implementation. Reusable form date fields use `react-native-calendars`, while timed fields use Expo-compatible `@react-native-community/datetimepicker` in 12-hour mode.
+- Tapping the month/year opens a direct month picker. Calendar-only visibility preferences for source types, density, and individual courses persist using the existing SecureStore/native and localStorage/web settings pattern; they do not alter Home or backend records.
+- Calendar's top-right overflow contains Display, Jump to month, and Today so the month row remains dedicated to navigation. Calendar Quick Add contains only Task, Event, and Note and forwards the current in-memory selected date into the existing creation forms.
 
 ### Class Schedule Management flow
 

@@ -10,11 +10,13 @@ import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import { useCourses } from '@/contexts/course-context';
 import { useTasks } from '@/contexts/task-context';
+import { parseLocalDate } from '@/lib/calendar/calendar-date';
 import { EMPTY_TASK_FORM, type TaskFormValues, toCreateTaskRequest } from '@/lib/tasks/task-form';
 
 export default function AddTaskScreen() {
-  const params = useLocalSearchParams<{ courseId?: string | string[] }>();
+  const params = useLocalSearchParams<{ courseId?: string | string[]; date?: string | string[] }>();
   const courseId = Array.isArray(params.courseId) ? params.courseId[0] : params.courseId;
+  const requestedDate = Array.isArray(params.date) ? params.date[0] : params.date;
   const { colors } = useAppearance();
   const navigation = useNavigation();
   const { courses, listError, listStatus, loadCourses } = useCourses();
@@ -22,7 +24,7 @@ export default function AddTaskScreen() {
   const [dirty, setDirty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const allowClose = useRef(false);
-  const initialValues = useMemo(() => ({ ...EMPTY_TASK_FORM, courseId: courseId ?? null }), [courseId]);
+  const initialValues = useMemo(() => ({ ...EMPTY_TASK_FORM, courseId: courseId ?? null, dueDate: requestedDate && parseLocalDate(requestedDate) ? requestedDate : '' }), [courseId, requestedDate]);
   const refreshCourses = useCallback(() => loadCourses(), [loadCourses]);
   useEffect(() => { void refreshCourses().catch(() => undefined); }, [refreshCourses]);
 

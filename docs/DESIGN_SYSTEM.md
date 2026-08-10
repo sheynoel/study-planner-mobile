@@ -49,6 +49,8 @@ Task filters, sorting, selectors, schedule editing, Add Task, Add Note, and ligh
 
 Reusable form date fields use a themed `react-native-calendars` month sheet. Reusable time fields use `@react-native-community/datetimepicker` with a visible 12-hour AM/PM preview while preserving the existing local `HH:mm` storage boundary. Custom Course color selection uses `reanimated-color-picker`; selection is communicated by fill, border, and ring treatments instead of decorative checkmarks.
 
+The global Calendar also uses `react-native-calendars` with a fixed-height custom day renderer. Month cells use tiny color rails plus text, never color alone, and cap previews before showing `+N`. Calendar display toggles use switches and density uses filled/outlined chips without checkmark decoration.
+
 The Profile & Settings screen includes a digital student card with the signed-in name, student role, active course count, near-term task count, and current theme accent. Its counts reuse existing dashboard data and introduce no new API contract.
 
 Motion is restrained to press feedback, modal-sheet presentation, and subtle skeleton pulsing. Theme changes are applied live through `AppearanceProvider`; they do not alter API state or navigation.

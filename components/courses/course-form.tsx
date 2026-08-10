@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ErrorBanner, FormField, SubmitButton } from '@/components/auth/auth-form';
@@ -13,7 +13,7 @@ import { emptyCourseScheduleForm, type ClassScheduleFormValues, type CourseSched
 import { expandWeekdaySchedules } from '@/lib/courses/course-creation';
 import { type CourseFormErrors, type CourseFormField, type CourseFormValues, validateCourseForm } from '@/lib/courses/course-form';
 
-export function CourseForm({ initialValues, loadingLabel, modalHeader, onSubmit, submitLabel, withSchedules = false }: { initialValues: CourseFormValues; loadingLabel: string; modalHeader?: { actionLabel: string; onCancel: () => void; title: string }; onSubmit: (values: CourseFormValues, schedules: ClassScheduleFormValues[]) => Promise<void>; submitLabel: string; withSchedules?: boolean }) {
+export function CourseForm({ afterSubmit, initialValues, loadingLabel, modalHeader, onSubmit, submitLabel, withSchedules = false }: { afterSubmit?: ReactNode; initialValues: CourseFormValues; loadingLabel: string; modalHeader?: { actionLabel: string; onCancel: () => void; title: string }; onSubmit: (values: CourseFormValues, schedules: ClassScheduleFormValues[]) => Promise<void>; submitLabel: string; withSchedules?: boolean }) {
   const { colors } = useAppearance();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<CourseFormErrors>({});
@@ -56,6 +56,7 @@ export function CourseForm({ initialValues, loadingLabel, modalHeader, onSubmit,
         <AppCard style={styles.sectionCard}><CourseColorPicker error={errors.color} onChange={(value) => updateField('color', value)} value={values.color} /></AppCard>
         {withSchedules ? <AppCard style={styles.sectionCard}><CourseScheduleEditor accentColor={values.color} errors={scheduleErrors} onAdd={() => { setSchedules((current) => [...current, emptyCourseScheduleForm()]); setScheduleErrors((current) => [...current, {}]); }} onChange={(index, schedule) => { setSchedules((current) => current.map((item, itemIndex) => itemIndex === index ? schedule : item)); setScheduleErrors((current) => current.map((item, itemIndex) => itemIndex === index ? {} : item)); }} onRemove={(index) => { setSchedules((current) => current.filter((_item, itemIndex) => itemIndex !== index)); setScheduleErrors((current) => current.filter((_item, itemIndex) => itemIndex !== index)); }} schedules={schedules} /></AppCard> : null}
         {!modalHeader ? <SubmitButton disabled={isSubmitting} label={submitLabel} loadingLabel={loadingLabel} onPress={() => void handleSubmit()} /> : null}
+        {afterSubmit}
       </ScrollView>
     </KeyboardAvoidingView>
   </View>;

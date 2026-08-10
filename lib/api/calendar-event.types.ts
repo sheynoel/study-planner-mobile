@@ -41,7 +41,7 @@ export type CalendarEventDetailResponse = CalendarEventResponse;
 export type UpdateCalendarEventResponse = CalendarEventResponse;
 export type DeleteCalendarEventResponse = { data: { message: string } };
 
-export type CalendarItemSourceType = 'event' | 'task' | 'class_schedule';
+export type CalendarItemSourceType = 'event' | 'task' | 'class_schedule' | 'note';
 
 export type CalendarItem = {
   id: string;
@@ -55,6 +55,7 @@ export type CalendarItem = {
   isAllDay: boolean;
   courseId: string | null;
   courseName: string | null;
+  courseCode?: string | null;
   color: string | null;
   location: string | null;
   status: TaskStatus | null;

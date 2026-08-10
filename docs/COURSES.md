@@ -15,7 +15,8 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 - A fixed-height two-column course grid on narrow phones showing only the course title, subtitle, color identity, and a pending-task badge when needed.
 - A compact Course Details workspace with one identity/schedule card, immediately visible course Tasks, a combined Events & Notes board, and a recent Materials preview.
 - Tapping the schedule summary opens a grouped schedule sheet; its Edit schedules action retains existing class-schedule create, detail, edit, and delete routes without a permanent Schedule tab.
-- A compact Personal Library utility tile above the course grid for files without a Course.
+- A compact Personal Library utility row above the course grid for files without a Course.
+- Personal Library is a one-column, full-width utility row with the same responsive page margins; actual Course folders remain in the two-column grid below it.
 
 The Add Course route is presented as a full-screen modal with a sticky Cancel/New Course/Create header. It labels the existing `name` and `code` contract as Main Title and Subtitle, omits the course-level room field, and groups optional details, color, and schedules into compact cards. A schedule block accepts multiple weekday chips with shared time, room, and semester dates; mobile expands those selections into one existing ClassSchedule create call per weekday.
 
@@ -31,6 +32,8 @@ The Add Course route is presented as a full-screen modal with a sticky Cancel/Ne
 All routes remain inside the authenticated Expo Router group. Courses are available from the five-item bottom navigation, while a missing or expired token is handled through the existing authentication guard and session cleanup.
 
 Course Details requests course-filtered Tasks, Calendar Events, Notes, Class Schedules, and recent Files. The Tasks filter sheet always retains the current course scope. Add Task, Add Note, and Add Event preselect the current course. The combined Events & Notes presentation does not merge their models or endpoints. Full Materials and the existing schedule routes retain the course UUID as their local scope. The redundant Course Calendar shortcut was removed from this screen; the global Calendar route and existing deep links remain intact.
+
+Delete Course is not presented during normal Course Details browsing. Edit Course contains a clearly labeled Danger Zone after the save action. It reuses the existing confirmation dialog, authenticated `DELETE /courses/:id` request, backend relationship behavior, and successful navigation back to the Courses list.
 
 ## Backend contract assumptions
 

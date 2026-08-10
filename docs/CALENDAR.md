@@ -6,9 +6,10 @@ This document records the mobile Calendar Management flow. It combines protected
 
 - Typed Calendar Event models, create/update requests, filters, and response envelopes with runtime validation.
 - A protected Calendar provider that loads events for the visible month, loads dated tasks, refreshes after mutations, and handles rejected JWTs through the authentication lifecycle.
-- A normalized UI projection that preserves `event`, `task`, and `class_schedule` source identity.
-- A dependency-free month grid with previous/next month navigation, selected-date behavior, and distinct event/task/class markers.
-- A selected-day agenda containing personal and course-related events and task deadlines.
+- A normalized UI projection that preserves `event`, `task`, `class_schedule`, and locally projected dated `note` source identity.
+- A `react-native-calendars` month grid with fixed six-week geometry, selected/today states, previous/next/swipe navigation, direct month/year selection, tiny content previews, and bounded overflow.
+- A compact selected-day timeline containing visible personal and course-related classes, events, task deadlines, and dated Notes.
+- Persisted Calendar-only display preferences for source visibility, compact/detailed density, and hidden Course IDs.
 - Calendar Event add, detail, edit, and confirmation-based delete routes.
 - Reusable month calendar, agenda, item card, event form, and legend components.
 - Clear loading, error, retry, empty, validation, and submitting states.
@@ -35,12 +36,13 @@ All routes remain inside the authenticated Expo Router group. Home, Calendar, Ta
 - Mobile clips each schedule to the visible month and its own start/end dates, finds the first matching weekday, and advances in seven-day local-date steps. It emits one stable `class_schedule:<scheduleId>:<date>` item per visible occurrence.
 - Class occurrence generation never writes Calendar Event records and deduplicates by schedule and local date.
 - Multi-day events are projected onto each local calendar date they overlap.
-- Each normalized item retains `sourceType` and `sourceId`, so event, task, and class items open their respective routes.
+- Each normalized item retains `sourceType` and `sourceId`, so events, tasks, classes, and dated Notes open their respective routes.
 - Course names come from the existing Course provider. Personal records remain first-class and use no synthetic course.
+- Notes are fetched through the existing Note API. A Note is projected only when `reminderAt` or `relevantAt` exists; pinned or undated Notes never enter Calendar. When both timestamps fall on the same local date, the Note appears once for that date.
 
 ## Date and time behavior
 
-- Forms accept local `YYYY-MM-DD` dates and 24-hour `HH:mm` times, consistent with the Task form.
+- Forms present reusable calendar selection and 12-hour AM/PM time controls. Their existing mappers retain local `YYYY-MM-DD` and `HH:mm` values before ISO conversion.
 - All-day mode hides time fields and sends local midnight converted to an ISO timestamp; `isAllDay` remains the backend's presentation flag.
 - End date/time is optional and cannot be earlier than the effective start.
 - API timestamps are parsed as instants and displayed with the device's locale and timezone.
@@ -49,14 +51,21 @@ All routes remain inside the authenticated Expo Router group. Home, Calendar, Ta
 
 ## Calendar presentation
 
-- Event, task, and class markers use separate colors, while agenda cards also include explicit `EVENT`, `TASK`, or `CLASS` badges so meaning never depends on color alone.
-- Task cards include priority and status chips. Completed tasks use reduced opacity and struck-through titles; overdue incomplete tasks receive an explicit overdue label.
-- Event cards show local time or all-day status and include location when present.
-- Event display colors accept the backend's optional string contract; only valid six-digit hex colors are used directly as card accents, with a safe fallback otherwise.
+- Each month cell has a fixed height and shows at most two one-line previews. Additional visible items collapse into `+N`, so busy dates cannot resize a week.
+- Compact density emphasizes short titles/course codes. Detailed density prefixes a short local time while retaining the same item limit and cell height.
+- Preview ordering favors overdue/due Tasks, then Events, Classes, and dated Notes, with chronological order inside equal priority.
+- Course colors appear as tiny accents rather than full-cell fills. Course code/name text and accessible labels keep meaning independent of color; personal items use the active theme accent.
+- The agenda uses a narrow time column, course-color rail, title, human source/course metadata, and a compact empty-day message.
 
-## Picker dependency decision
+## Month navigation and display preferences
 
-The main planner month view remains the existing React Native `View` and `Pressable` implementation, so its combined event/task/class projection is unchanged. Form date selection now uses the reusable themed `react-native-calendars` sheet, and timed events use Expo-compatible `@react-native-community/datetimepicker` with a 12-hour AM/PM presentation. Existing local-to-ISO conversion and backend contracts remain unchanged.
+The main planner month view now uses the already installed `react-native-calendars` package with a custom day renderer; the package renders calendar geometry while application data remains in the existing normalized read model. The reusable Month & Year sheet offers 12 month buttons, previous/next year controls, Cancel, and Go. Direct jumps clamp the previously selected day to the target month's valid last day.
+
+The title header has a compact overflow menu for Calendar Display, Jump to month, and Today. This keeps previous month, tappable month/year, and next month as the only controls in the month-navigation row. Responsive top padding separates the title from navigation, and an additional margin separates navigation from the calendar grid.
+
+The Calendar floating Add action is context-aware. Its compact menu contains only Task, Event, and Note. It forwards the current in-memory `selectedDate` as a route parameter: Task uses it as `dueDate`, Event as `startDate`, and Note as `relevantDate`. No Course is assigned by this context, each form remains editable, and entering Calendar starts with today rather than restoring a date from another app session.
+
+`showClasses`, `showTasks`, `showEventsNotes`, `hiddenCourseIds`, and `density` are presentation-only preferences stored under `study-planner.calendar-display`. Native platforms reuse Expo SecureStore and web uses localStorage, matching the existing appearance preference pattern. Filtering occurs after normalization, so hiding a source or Course never deletes records, edits schedules, changes Course Details, or changes Home Classes Today.
 
 ## Backend contract assumptions
 
@@ -76,9 +85,9 @@ The main planner month view remains the existing React Native `View` and `Pressa
 2. Configure `EXPO_PUBLIC_API_URL` with the development computer's LAN IPv4 address and port `3000`.
 3. Keep the Android phone and computer on the same network and allow inbound TCP port `3000` through the firewall.
 4. Start Expo with `npm start`, scan the QR code in Expo Go, and sign in.
-5. Open Calendar and verify month navigation, selected dates, event/task/class markers, and the selected-day agenda.
+5. Open Calendar and verify month navigation, direct month/year jumps, selected dates, event/task/class/dated-note previews, and the selected-day agenda.
 6. Create personal, course-related, timed, all-day, open-ended, and multi-day events. Confirm validation rejects missing titles and reversed ranges.
-7. Add due dates to personal and course Tasks, then verify their markers and agenda cards open the existing Task details route.
+7. Add due dates to personal and course Tasks, then verify their previews and agenda rows open the existing Task details route.
 8. Verify completed and overdue Task cards are visually and textually distinct.
 9. Edit an event, including removing its Course or end time, and confirm details and calendar refresh.
 10. Cancel event deletion once, then confirm it and verify the event disappears from the calendar.
@@ -87,4 +96,4 @@ The main planner month view remains the existing React Native `View` and `Pressa
 
 ## Deferred work
 
-Recurring Calendar Events, occurrence overrides, attendance, Google Calendar synchronization, files, notes, notifications, SQLite, caching, and offline synchronization remain outside this phase.
+Recurring Calendar Events, occurrence overrides, attendance, Google Calendar synchronization, files, notifications, SQLite, caching, and offline synchronization remain outside this phase.

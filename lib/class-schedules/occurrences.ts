@@ -51,6 +51,7 @@ export function generateClassScheduleOccurrences(
           isAllDay: false,
           courseId: schedule.courseId,
           courseName: course?.name ?? 'Course unavailable',
+          courseCode: course?.code ?? null,
           color: course?.color ?? null,
           location: schedule.room,
           status: null,

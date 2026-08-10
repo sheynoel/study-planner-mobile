@@ -2,6 +2,7 @@ import type { CalendarEvent, CalendarItem } from '@/lib/api/calendar-event.types
 import type { Course } from '@/lib/api/course.types';
 import type { Task } from '@/lib/api/task.types';
 import type { ClassSchedule } from '@/lib/api/class-schedule.types';
+import type { Note } from '@/lib/api/note.types';
 import { eachLocalDate, toLocalDateKey } from '@/lib/calendar/calendar-date';
 import type { CalendarRange } from '@/lib/calendar/calendar-date';
 import { generateClassScheduleOccurrences } from '@/lib/class-schedules/occurrences';
@@ -12,15 +13,24 @@ export function normalizeCalendarItems(
   courses: Course[],
   schedules: ClassSchedule[] = [],
   range?: CalendarRange,
+  notes: Note[] = [],
 ): CalendarItem[] {
-  const courseNames = new Map(courses.map((course) => [course.id, course.name]));
-  const eventItems = events.flatMap((event) => normalizeEvent(event, courseNames));
-  const taskItems = tasks.flatMap((task) => normalizeTask(task, courseNames));
+  const courseData = new Map(courses.map((course) => [course.id, { code: course.code, color: course.color, name: course.name }]));
+  const eventItems = events.flatMap((event) => normalizeEvent(event, courseData));
+  const taskItems = tasks.flatMap((task) => normalizeTask(task, courseData));
+  const noteItems = normalizeCalendarNotes(notes, courses);
   const scheduleItems = range ? generateClassScheduleOccurrences(schedules, courses, range) : [];
-  return [...eventItems, ...taskItems, ...scheduleItems].sort(compareCalendarItems);
+  return [...eventItems, ...taskItems, ...scheduleItems, ...noteItems].sort(compareCalendarItems);
 }
 
-function normalizeEvent(event: CalendarEvent, courseNames: Map<string, string>): CalendarItem[] {
+export function normalizeCalendarNotes(notes: Note[], courses: Course[]): CalendarItem[] {
+  const courseData = new Map(courses.map((course) => [course.id, { code: course.code, color: course.color, name: course.name }]));
+  return notes.flatMap((note) => normalizeNote(note, courseData)).sort(compareCalendarItems);
+}
+
+type CourseCalendarData = Map<string, { code: string | null; color: string; name: string }>;
+
+function normalizeEvent(event: CalendarEvent, courseData: CourseCalendarData): CalendarItem[] {
   const start = new Date(event.startAt);
   const end = new Date(event.endAt ?? event.startAt);
   return eachLocalDate(start, end).map((date) => ({
@@ -34,15 +44,16 @@ function normalizeEvent(event: CalendarEvent, courseNames: Map<string, string>):
     endAt: event.endAt,
     isAllDay: event.isAllDay,
     courseId: event.courseId,
-    courseName: event.courseId ? courseNames.get(event.courseId) ?? 'Course unavailable' : null,
-    color: event.color,
+    courseName: event.courseId ? courseData.get(event.courseId)?.name ?? 'Course unavailable' : null,
+    courseCode: event.courseId ? courseData.get(event.courseId)?.code ?? null : null,
+    color: event.color ?? (event.courseId ? courseData.get(event.courseId)?.color ?? null : null),
     location: event.location,
     status: null,
     priority: null,
   }));
 }
 
-function normalizeTask(task: Task, courseNames: Map<string, string>): CalendarItem[] {
+function normalizeTask(task: Task, courseData: CourseCalendarData): CalendarItem[] {
   if (!task.dueAt) return [];
   const date = toLocalDateKey(task.dueAt);
   return [{
@@ -56,12 +67,24 @@ function normalizeTask(task: Task, courseNames: Map<string, string>): CalendarIt
     endAt: null,
     isAllDay: false,
     courseId: task.courseId,
-    courseName: task.courseId ? courseNames.get(task.courseId) ?? 'Course unavailable' : null,
-    color: null,
+    courseName: task.courseId ? courseData.get(task.courseId)?.name ?? 'Course unavailable' : null,
+    courseCode: task.courseId ? courseData.get(task.courseId)?.code ?? null : null,
+    color: task.courseId ? courseData.get(task.courseId)?.color ?? null : null,
     location: null,
     status: task.status,
     priority: task.priority,
   }];
+}
+
+function normalizeNote(note: Note, courseData: CourseCalendarData): CalendarItem[] {
+  const moments = [...new Set([note.reminderAt, note.relevantAt].filter((value): value is string => Boolean(value)).map((value) => `${toLocalDateKey(value)}|${value}`))];
+  const seenDates = new Set<string>();
+  return moments.flatMap((moment) => {
+    const [date, startAt] = moment.split('|');
+    if (seenDates.has(date)) return [];
+    seenDates.add(date);
+    return [{ id: `note:${note.id}:${date}`, sourceId: note.id, scheduleId: null, sourceType: 'note' as const, title: note.title || note.content?.trim() || 'Note', date, startAt, endAt: null, isAllDay: false, courseId: note.courseId, courseName: note.courseId ? courseData.get(note.courseId)?.name ?? 'Course unavailable' : null, courseCode: note.courseId ? courseData.get(note.courseId)?.code ?? null : null, color: note.courseId ? courseData.get(note.courseId)?.color ?? null : null, location: null, status: null, priority: null }];
+  });
 }
 
 function compareCalendarItems(left: CalendarItem, right: CalendarItem): number {

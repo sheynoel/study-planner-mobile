@@ -5,6 +5,9 @@ export const taskRoutes = {
   addForCourse(courseId: string): Href {
     return { pathname: '/tasks/new', params: { courseId } } as unknown as Href;
   },
+  addForDate(date: string): Href {
+    return { pathname: '/tasks/new', params: { date } } as unknown as Href;
+  },
   details(id: string): Href {
     return { pathname: '/tasks/[id]', params: { id } } as unknown as Href;
   },

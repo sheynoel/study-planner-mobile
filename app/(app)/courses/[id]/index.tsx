@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
-import { ErrorBanner } from '@/components/auth/auth-form';
 import { CourseEventCard } from '@/components/courses/course-event-card';
 import { CourseHero } from '@/components/courses/course-hero';
 import { CourseMaterialRow } from '@/components/courses/course-material-row';
@@ -14,10 +13,8 @@ import { AcademicTaskCard } from '@/components/tasks/academic-task-card';
 import { TaskFilterSheet } from '@/components/tasks/task-filter-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet';
-import { AppButton } from '@/components/ui/app-button';
 import { AppScreen } from '@/components/ui/app-screen';
 import { ErrorState } from '@/components/ui/async-state';
-import { showDestructiveConfirmation } from '@/components/ui/confirmation-dialog';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
@@ -45,7 +42,7 @@ export default function CourseDetailsScreen() {
   const { colors } = useAppearance();
   const { loadCourseEvents } = useCalendar();
   const { loadCourseSchedules, schedules } = useClassSchedules();
-  const { deleteCourse, getCachedCourse, loadCourse } = useCourses();
+  const { getCachedCourse, loadCourse } = useCourses();
   const { files, loadFiles } = useFiles();
   const { loadNotes, notes } = useNotes();
   const { completeTask, loadTasks, tasks } = useTasks();
@@ -53,8 +50,6 @@ export default function CourseDetailsScreen() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(!course);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [scheduleVisible, setScheduleVisible] = useState(false);
   const [createVisible, setCreateVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -77,7 +72,6 @@ export default function CourseDetailsScreen() {
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
 
   async function handleComplete(id: string) { if (completingIds.has(id)) return; setCompletingIds((current) => new Set(current).add(id)); try { await completeTask(id); } catch (error) { setLoadError(getApiErrorMessage(error)); } finally { setCompletingIds((current) => { const next = new Set(current); next.delete(id); return next; }); } }
-  async function performDelete() { if (!courseId || isDeleting) return; setDeleteError(null); setIsDeleting(true); try { await deleteCourse(courseId); router.replace(courseRoutes.list); } catch (error) { setDeleteError(getApiErrorMessage(error)); setIsDeleting(false); } }
 
   return <AppScreen edges={['top', 'bottom']}>
     <AppHeader compactTitle onBack={() => router.back()} onRightAction={course && courseId ? () => router.push(courseRoutes.edit(courseId)) : undefined} rightActionLabel={course && courseId ? 'Edit' : undefined} title="Course" />
@@ -88,8 +82,6 @@ export default function CourseDetailsScreen() {
       <WorkspaceSection actions={<View style={styles.actions}><SectionAction icon="options-outline" label={activeTaskFilterCount(taskFilters) ? `Filter ${activeTaskFilterCount(taskFilters)}` : 'Filter'} onPress={() => setFilterVisible(true)} /><SectionAction icon="add" label="Add task" onPress={() => router.push(taskRoutes.addForCourse(courseId))} /></View>} title="Tasks"><View style={styles.list}>{visibleTasks.length ? visibleTasks.map((task) => <AcademicTaskCard course={course} isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>{courseTasks.length ? 'No active tasks match this filter.' : 'No active tasks yet.'}</ThemedText>}</View></WorkspaceSection>
       <WorkspaceSection actions={<SectionAction icon="add" label="Add event or note" onPress={() => setCreateVisible(true)} />} title="Events & Notes">{upcomingEvents.length || courseNotes.length ? <View style={styles.cardGrid}>{courseNotes.filter((note) => note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}{upcomingEvents.map((event) => <CourseEventCard event={event} key={event.id} onPress={() => router.push(calendarRoutes.details(event.id))} width={cardWidth} />)}{courseNotes.filter((note) => !note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}</View> : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No events or notes yet.</ThemedText>}</WorkspaceSection>
       <WorkspaceSection actions={<SectionAction icon="chevron-forward" label="Open materials" onPress={() => router.push(fileRoutes.forCourse(courseId))} />} title="Materials"><View style={styles.list}>{recentFiles.length ? recentFiles.map((file) => <CourseMaterialRow file={file} key={file.id} onPress={() => router.push(fileRoutes.details(file.id))} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No materials yet.</ThemedText>}</View></WorkspaceSection>
-      <ErrorBanner message={deleteError ?? loadError} />
-      <AppButton label={isDeleting ? 'Deleting course…' : 'Delete course'} loading={isDeleting} onPress={() => showDestructiveConfirmation({ title: 'Delete course?', message: 'This removes the course permanently. Tasks, notes, and files are preserved as personal items by the backend.', onConfirm: () => void performDelete() })} variant="danger" />
     </ScrollView> : null}
     <CourseScheduleSheet onClose={() => setScheduleVisible(false)} onEdit={() => router.push(classScheduleRoutes.courseList(courseId!))} schedules={schedules} visible={scheduleVisible} />
     <TaskFilterSheet onApply={(value) => setTaskFilters({ ...value, courseId })} onClose={() => setFilterVisible(false)} value={{ ...taskFilters, courseId }} visible={filterVisible} />
