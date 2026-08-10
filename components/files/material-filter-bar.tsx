@@ -1,26 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/app-button';
-import { ChoiceChip } from '@/components/ui/choice-chip';
+import { ThemedText } from '@/components/themed-text';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import type { Course } from '@/lib/api/course.types';
 import { materialCategoryLabel, type MaterialCategory, type MaterialFilterState, type MaterialLibraryScope } from '@/lib/files/material-filters';
 
 const CATEGORIES: readonly MaterialCategory[] = ['all', 'pdf', 'slides', 'documents', 'images'];
-
 export function MaterialFilterBar({ courses, filters, onChange, scope }: { courses: Course[]; filters: MaterialFilterState; onChange: (filters: MaterialFilterState) => void; scope: MaterialLibraryScope }) {
-  const { colors } = useAppearance();
-  const [search, setSearch] = useState(filters.search);
-  useEffect(() => setSearch(filters.search), [filters.search]);
-  const submitSearch = () => onChange({ ...filters, search: search.trim() });
-  return <View style={styles.container}>
-    <View style={[styles.searchRow, { backgroundColor: colors.surfaceVariant }]}><Ionicons color={colors.textSecondary} name="search" size={DesignTokens.icon.md} /><TextInput accessibilityLabel="Search materials" onChangeText={setSearch} onSubmitEditing={submitSearch} placeholder="Search materials" placeholderTextColor={colors.textSecondary} returnKeyType="search" style={[styles.search, { color: colors.textPrimary }]} value={search} /><AppButton label="Search" onPress={submitSearch} style={styles.searchButton} variant="ghost" /></View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>{CATEGORIES.map((category) => <ChoiceChip key={category} label={materialCategoryLabel(category)} selected={filters.category === category} onPress={() => onChange({ ...filters, category })} />)}</ScrollView>
-    {scope.kind === 'all' ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}><ChoiceChip label="All courses" selected={!filters.courseId} onPress={() => onChange({ ...filters, courseId: undefined })} /><ChoiceChip label="Personal" selected={filters.courseId === 'personal'} onPress={() => onChange({ ...filters, courseId: 'personal' })} />{courses.map((course) => <ChoiceChip key={course.id} label={course.code ?? course.name} selected={filters.courseId === course.id} onPress={() => onChange({ ...filters, courseId: course.id })} />)}</ScrollView> : null}
-  </View>;
+  const { colors } = useAppearance(); const [search, setSearch] = useState(filters.search); useEffect(() => setSearch(filters.search), [filters.search]); const submitSearch = () => onChange({ ...filters, search: search.trim() });
+  return <View style={styles.container}><View style={[styles.searchRow, { backgroundColor: colors.surfaceVariant }]}><Ionicons color={colors.textSecondary} name="search" size={17} /><TextInput accessibilityLabel="Search materials" onChangeText={setSearch} onSubmitEditing={submitSearch} placeholder="Search materials" placeholderTextColor={colors.textSecondary} returnKeyType="search" style={[styles.search, { color: colors.textPrimary }]} value={search} /></View><ScrollView contentContainerStyle={styles.chips} horizontal showsHorizontalScrollIndicator={false}>{CATEGORIES.map((category) => <FilterPill key={category} label={materialCategoryLabel(category)} onPress={() => onChange({ ...filters, category })} selected={filters.category === category} />)}</ScrollView>{scope.kind === 'all' ? <ScrollView contentContainerStyle={styles.chips} horizontal showsHorizontalScrollIndicator={false}><FilterPill label="All courses" onPress={() => onChange({ ...filters, courseId: undefined })} selected={!filters.courseId} /><FilterPill label="Personal" onPress={() => onChange({ ...filters, courseId: 'personal' })} selected={filters.courseId === 'personal'} />{courses.map((course) => <FilterPill key={course.id} label={course.code ?? course.name} onPress={() => onChange({ ...filters, courseId: course.id })} selected={filters.courseId === course.id} />)}</ScrollView> : null}</View>;
 }
-
-const styles = StyleSheet.create({ container: { gap: DesignTokens.spacing.sm }, searchRow: { alignItems: 'center', borderRadius: DesignTokens.radius.lg, flexDirection: 'row', gap: DesignTokens.spacing.sm, minHeight: DesignTokens.size.inputHeight, paddingLeft: DesignTokens.spacing.md }, search: { flex: 1, fontSize: 16, minHeight: DesignTokens.size.inputHeight }, searchButton: { minHeight: DesignTokens.size.touchTarget, paddingHorizontal: DesignTokens.spacing.md }, chips: { gap: DesignTokens.spacing.sm, paddingRight: DesignTokens.spacing.md } });
+function FilterPill({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) { const { colors } = useAppearance(); return <Pressable accessibilityRole="button" accessibilityState={{ selected }} hitSlop={5} onPress={onPress} style={({ pressed }) => [styles.pill, { backgroundColor: selected ? colors.primaryContainer : colors.surfaceSubtle, borderColor: selected ? colors.primary : colors.border }, pressed ? styles.pressed : undefined]}><ThemedText style={[styles.pillText, { color: selected ? colors.primary : colors.textSecondary }]}>{label}</ThemedText></Pressable>; }
+const styles = StyleSheet.create({ container: { gap: DesignTokens.spacing.sm }, searchRow: { alignItems: 'center', borderRadius: DesignTokens.radius.md, flexDirection: 'row', gap: DesignTokens.spacing.sm, minHeight: 40, paddingHorizontal: DesignTokens.spacing.md }, search: { flex: 1, fontSize: 12, minHeight: 40 }, chips: { gap: 7, paddingRight: DesignTokens.spacing.md }, pill: { borderRadius: DesignTokens.radius.pill, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 34, paddingHorizontal: 12 }, pillText: { fontSize: 10.5, fontWeight: '600' }, pressed: { opacity: 0.66 } });

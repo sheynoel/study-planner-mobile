@@ -5,24 +5,27 @@ import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 're
 
 import { AppHeader } from '@/components/app-header';
 import { ErrorBanner } from '@/components/auth/auth-form';
-import { CollapsibleHomeSection } from '@/components/dashboard/collapsible-home-section';
 import { CourseEventCard } from '@/components/courses/course-event-card';
 import { CourseHero } from '@/components/courses/course-hero';
+import { CourseMaterialRow } from '@/components/courses/course-material-row';
+import { CourseNoteCard } from '@/components/courses/course-note-card';
 import { CourseScheduleSheet } from '@/components/courses/course-schedule-sheet';
-import { CourseTaskRow } from '@/components/courses/course-task-row';
-import { CourseToolShortcuts } from '@/components/courses/course-tool-shortcuts';
+import { AcademicTaskCard } from '@/components/tasks/academic-task-card';
 import { TaskFilterSheet } from '@/components/tasks/task-filter-sheet';
 import { ThemedText } from '@/components/themed-text';
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet';
 import { AppButton } from '@/components/ui/app-button';
 import { AppScreen } from '@/components/ui/app-screen';
-import { showDestructiveConfirmation } from '@/components/ui/confirmation-dialog';
 import { ErrorState } from '@/components/ui/async-state';
+import { showDestructiveConfirmation } from '@/components/ui/confirmation-dialog';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import { useCalendar } from '@/contexts/calendar-context';
 import { useClassSchedules } from '@/contexts/class-schedule-context';
 import { useCourses } from '@/contexts/course-context';
+import { useFiles } from '@/contexts/file-context';
+import { useNotes } from '@/contexts/note-context';
 import { useTasks } from '@/contexts/task-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import type { CalendarEvent } from '@/lib/api/calendar-event.types';
@@ -43,6 +46,8 @@ export default function CourseDetailsScreen() {
   const { loadCourseEvents } = useCalendar();
   const { loadCourseSchedules, schedules } = useClassSchedules();
   const { deleteCourse, getCachedCourse, loadCourse } = useCourses();
+  const { files, loadFiles } = useFiles();
+  const { loadNotes, notes } = useNotes();
   const { completeTask, loadTasks, tasks } = useTasks();
   const [course, setCourse] = useState<Course | null>(() => courseId ? getCachedCourse(courseId) ?? null : null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -50,49 +55,50 @@ export default function CourseDetailsScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [tasksExpanded, setTasksExpanded] = useState(true);
-  const [eventsExpanded, setEventsExpanded] = useState(true);
   const [scheduleVisible, setScheduleVisible] = useState(false);
+  const [createVisible, setCreateVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [taskFilters, setTaskFilters] = useState<TaskFilterState>(() => ({ ...DEFAULT_TASK_FILTERS, courseId }));
   const [completingIds, setCompletingIds] = useState<Set<string>>(() => new Set());
   const courseTasks = useMemo(() => tasks.filter((task) => task.courseId === courseId), [courseId, tasks]);
   const visibleTasks = useMemo(() => sortTasks(filterTasksLocally(courseTasks, { ...taskFilters, courseId }, () => course?.name, new Date()), 'deadline_soonest'), [course?.name, courseId, courseTasks, taskFilters]);
+  const courseNotes = useMemo(() => notes.filter((note) => note.courseId === courseId).sort((a, b) => Number(b.isPinned) - Number(a.isPinned) || noteTime(a) - noteTime(b)), [courseId, notes]);
   const upcomingEvents = useMemo(() => events.filter((event) => event.courseId === courseId && Date.parse(event.endAt ?? event.startAt) >= Date.now()).sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt)), [courseId, events]);
-  const eventCardWidth = (width - DesignTokens.layout.screenPadding * 2 - DesignTokens.spacing.sm) / 2;
+  const recentFiles = useMemo(() => files.filter((file) => file.courseId === courseId).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 3), [courseId, files]);
+  const cardWidth = Math.max(124, (width - DesignTokens.layout.screenPadding * 2 - DesignTokens.spacing.sm) / 2);
 
   const refresh = useCallback(async () => {
     if (!courseId) { setLoadError('This course link is invalid.'); setIsLoading(false); return; }
     setLoadError(null); setIsLoading(true);
-    try { const [loaded, , loadedEvents] = await Promise.all([loadCourse(courseId), loadTasks({ courseId }), loadCourseEvents(courseId), loadCourseSchedules(courseId)]); setCourse(loaded); setEvents(loadedEvents); }
+    try { const [loaded, , loadedEvents] = await Promise.all([loadCourse(courseId), loadTasks({ courseId }), loadCourseEvents(courseId), loadCourseSchedules(courseId), loadNotes({ courseId }), loadFiles({ courseId })]); setCourse(loaded); setEvents(loadedEvents); }
     catch (error) { setLoadError(getApiErrorMessage(error)); }
     finally { setIsLoading(false); }
-  }, [courseId, loadCourse, loadCourseEvents, loadCourseSchedules, loadTasks]);
+  }, [courseId, loadCourse, loadCourseEvents, loadCourseSchedules, loadFiles, loadNotes, loadTasks]);
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
 
   async function handleComplete(id: string) { if (completingIds.has(id)) return; setCompletingIds((current) => new Set(current).add(id)); try { await completeTask(id); } catch (error) { setLoadError(getApiErrorMessage(error)); } finally { setCompletingIds((current) => { const next = new Set(current); next.delete(id); return next; }); } }
   async function performDelete() { if (!courseId || isDeleting) return; setDeleteError(null); setIsDeleting(true); try { await deleteCourse(courseId); router.replace(courseRoutes.list); } catch (error) { setDeleteError(getApiErrorMessage(error)); setIsDeleting(false); } }
 
   return <AppScreen edges={['top', 'bottom']}>
-    <AppHeader onBack={() => router.back()} onRightAction={course && courseId ? () => router.push(courseRoutes.edit(courseId)) : undefined} rightActionLabel={course && courseId ? 'Edit' : undefined} title="Course" />
+    <AppHeader compactTitle onBack={() => router.back()} onRightAction={course && courseId ? () => router.push(courseRoutes.edit(courseId)) : undefined} rightActionLabel={course && courseId ? 'Edit' : undefined} title="Course" />
     {isLoading && !course ? <LoadingSkeleton rows={4} /> : null}
     {loadError && !course ? <ErrorState message={loadError} onRetry={() => void refresh()} /> : null}
     {course && courseId ? <ScrollView contentContainerStyle={styles.content}>
       <CourseHero course={course} onSchedulePress={() => setScheduleVisible(true)} schedules={schedules} />
-      <CollapsibleHomeSection action={<SectionActions actions={[{ icon: 'options-outline', label: activeTaskFilterCount(taskFilters) ? `Filter ${activeTaskFilterCount(taskFilters)}` : 'Filter', onPress: () => setFilterVisible(true) }, { icon: 'add', label: 'Add task', onPress: () => router.push(taskRoutes.addForCourse(courseId)) }]} />} expanded={tasksExpanded} onToggle={() => setTasksExpanded((value) => !value)} title="Tasks">
-        <View style={styles.list}>{visibleTasks.length ? visibleTasks.map((task) => <CourseTaskRow isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>{courseTasks.length ? 'No tasks match this filter.' : 'No tasks for this course yet.'}</ThemedText>}</View>
-      </CollapsibleHomeSection>
-      <CollapsibleHomeSection action={<SectionActions actions={[{ icon: 'add', label: 'Add event', onPress: () => router.push(calendarRoutes.addForCourse(courseId)) }]} />} expanded={eventsExpanded} onToggle={() => setEventsExpanded((value) => !value)} title="Events">
-        {upcomingEvents.length ? <View style={styles.eventGrid}>{upcomingEvents.map((event) => <CourseEventCard event={event} key={event.id} onPress={() => router.push(calendarRoutes.details(event.id))} width={eventCardWidth} />)}</View> : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No upcoming events.</ThemedText>}
-      </CollapsibleHomeSection>
-      <CourseToolShortcuts onCalendar={() => router.push(calendarRoutes.forCourse(courseId))} onMaterials={() => router.push(fileRoutes.forCourse(courseId))} onNotes={() => router.push(noteRoutes.forCourse(courseId))} />
+      <WorkspaceSection actions={<View style={styles.actions}><SectionAction icon="options-outline" label={activeTaskFilterCount(taskFilters) ? `Filter ${activeTaskFilterCount(taskFilters)}` : 'Filter'} onPress={() => setFilterVisible(true)} /><SectionAction icon="add" label="Add task" onPress={() => router.push(taskRoutes.addForCourse(courseId))} /></View>} title="Tasks"><View style={styles.list}>{visibleTasks.length ? visibleTasks.map((task) => <AcademicTaskCard course={course} isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>{courseTasks.length ? 'No active tasks match this filter.' : 'No active tasks yet.'}</ThemedText>}</View></WorkspaceSection>
+      <WorkspaceSection actions={<SectionAction icon="add" label="Add event or note" onPress={() => setCreateVisible(true)} />} title="Events & Notes">{upcomingEvents.length || courseNotes.length ? <View style={styles.cardGrid}>{courseNotes.filter((note) => note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}{upcomingEvents.map((event) => <CourseEventCard event={event} key={event.id} onPress={() => router.push(calendarRoutes.details(event.id))} width={cardWidth} />)}{courseNotes.filter((note) => !note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}</View> : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No events or notes yet.</ThemedText>}</WorkspaceSection>
+      <WorkspaceSection actions={<SectionAction icon="chevron-forward" label="Open materials" onPress={() => router.push(fileRoutes.forCourse(courseId))} />} title="Materials"><View style={styles.list}>{recentFiles.length ? recentFiles.map((file) => <CourseMaterialRow file={file} key={file.id} onPress={() => router.push(fileRoutes.details(file.id))} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No materials yet.</ThemedText>}</View></WorkspaceSection>
       <ErrorBanner message={deleteError ?? loadError} />
-      <AppButton label={isDeleting ? 'Deleting course...' : 'Delete course'} loading={isDeleting} onPress={() => showDestructiveConfirmation({ title: 'Delete course?', message: 'This removes the course permanently. Tasks, notes, and files are preserved as personal items by the backend.', onConfirm: () => void performDelete() })} variant="danger" />
+      <AppButton label={isDeleting ? 'Deleting course…' : 'Delete course'} loading={isDeleting} onPress={() => showDestructiveConfirmation({ title: 'Delete course?', message: 'This removes the course permanently. Tasks, notes, and files are preserved as personal items by the backend.', onConfirm: () => void performDelete() })} variant="danger" />
     </ScrollView> : null}
-    {courseId ? <CourseScheduleSheet onClose={() => setScheduleVisible(false)} onEdit={() => router.push(classScheduleRoutes.courseList(courseId))} schedules={schedules} visible={scheduleVisible} /> : null}
+    <CourseScheduleSheet onClose={() => setScheduleVisible(false)} onEdit={() => router.push(classScheduleRoutes.courseList(courseId!))} schedules={schedules} visible={scheduleVisible} />
     <TaskFilterSheet onApply={(value) => setTaskFilters({ ...value, courseId })} onClose={() => setFilterVisible(false)} value={{ ...taskFilters, courseId }} visible={filterVisible} />
+    <AppBottomSheet initialSnap={0.4} onClose={() => setCreateVisible(false)} title="Add to Course" visible={createVisible}><View style={styles.createChoices}><CreateChoice icon="document-text-outline" label="Note" onPress={() => { setCreateVisible(false); router.push(noteRoutes.addForCourse(courseId!)); }} subtitle="Capture an idea or reminder" /><CreateChoice icon="calendar-outline" label="Event" onPress={() => { setCreateVisible(false); router.push(calendarRoutes.addForCourse(courseId!)); }} subtitle="Add an exam, deadline, or activity" /></View></AppBottomSheet>
   </AppScreen>;
 }
 
-function SectionActions({ actions }: { actions: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }[] }) { const { colors } = useAppearance(); return <View style={styles.actions}>{actions.map((action) => <Pressable accessibilityLabel={action.label} accessibilityRole="button" key={action.label} onPress={action.onPress} style={({ pressed }) => [styles.action, pressed ? styles.pressed : undefined]}>{action.label.startsWith('Filter') ? <ThemedText style={[styles.actionLabel, { color: colors.primary }]}>{action.label}</ThemedText> : null}<Ionicons color={colors.primary} name={action.icon} size={18} /></Pressable>)}</View>; }
-const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.lg, padding: DesignTokens.layout.screenPadding, paddingBottom: 48 }, list: { gap: DesignTokens.spacing.xs }, eventGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: DesignTokens.spacing.sm }, empty: { fontSize: 12, lineHeight: 17, paddingVertical: DesignTokens.spacing.xs }, actions: { alignItems: 'center', flexDirection: 'row', gap: 2 }, action: { alignItems: 'center', flexDirection: 'row', gap: 3, justifyContent: 'center', minHeight: 44, paddingHorizontal: 6 }, actionLabel: { fontSize: 11, fontWeight: '700' }, pressed: { opacity: 0.6 } });
+function WorkspaceSection({ actions, children, title }: { actions?: React.ReactNode; children: React.ReactNode; title: string }) { return <View style={styles.section}><View style={styles.sectionHeader}><ThemedText style={styles.sectionTitle}>{title}</ThemedText>{actions}</View>{children}</View>; }
+function SectionAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) { const { colors } = useAppearance(); return <Pressable accessibilityLabel={label} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.action, pressed ? styles.pressed : undefined]}>{label.startsWith('Filter') ? <ThemedText style={[styles.actionLabel, { color: colors.primary }]}>{label}</ThemedText> : null}<Ionicons color={colors.primary} name={icon} size={18} /></Pressable>; }
+function CreateChoice({ icon, label, onPress, subtitle }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; subtitle: string }) { const { colors } = useAppearance(); return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.createChoice, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }, pressed ? styles.pressed : undefined]}><Ionicons color={colors.primary} name={icon} size={20} /><View style={styles.createText}><ThemedText style={styles.createTitle}>{label}</ThemedText><ThemedText style={[styles.createSubtitle, { color: colors.textSecondary }]}>{subtitle}</ThemedText></View><Ionicons color={colors.textSecondary} name="chevron-forward" size={16} /></Pressable>; }
+function noteTime(note: { relevantAt: string | null; reminderAt: string | null; updatedAt: string }): number { return Date.parse(note.reminderAt ?? note.relevantAt ?? note.updatedAt); }
+const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.lg, padding: DesignTokens.layout.screenPadding, paddingBottom: 48 }, section: { gap: DesignTokens.spacing.sm }, sectionHeader: { alignItems: 'center', flexDirection: 'row', minHeight: 36 }, sectionTitle: { flex: 1, fontSize: 16, fontWeight: '800', lineHeight: 21 }, list: { gap: 6 }, cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: DesignTokens.spacing.sm }, empty: { fontSize: 11, lineHeight: 16, paddingVertical: DesignTokens.spacing.xs }, actions: { alignItems: 'center', flexDirection: 'row', gap: 2 }, action: { alignItems: 'center', flexDirection: 'row', gap: 3, justifyContent: 'center', minHeight: 44, paddingHorizontal: 6 }, actionLabel: { fontSize: 10, fontWeight: '700' }, createChoices: { gap: DesignTokens.spacing.sm, paddingHorizontal: DesignTokens.layout.screenPadding }, createChoice: { alignItems: 'center', borderRadius: DesignTokens.radius.md, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: DesignTokens.spacing.sm, minHeight: 60, padding: DesignTokens.spacing.md }, createText: { flex: 1 }, createTitle: { fontSize: 13, fontWeight: '800', lineHeight: 17 }, createSubtitle: { fontSize: 10, lineHeight: 14 }, pressed: { opacity: 0.64 } });

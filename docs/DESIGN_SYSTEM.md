@@ -45,7 +45,9 @@ The main bottom navigation is limited to Home, Calendar, Tasks, Courses, and Fil
 
 Course cards use responsive numeric widths, two-line title clamping, one-line metadata, and restrained course accents to prevent overlap on narrow devices. Home and Course Details use compact metrics, short card stacks, and horizontal previews to keep the workspace organized without turning every section into a full feature screen.
 
-Task filters and sorting use bottom sheets rather than inline dropdown-like rows. File Library, course Materials, and Personal Library share one material filter and presentation layer so category definitions and mutation refresh behavior stay consistent.
+Task filters, sorting, selectors, schedule editing, Add Task, Add Note, and lightweight action menus share one internal adaptive bottom-sheet primitive. It provides a dim backdrop, rounded themed surface, drag/tap handle, initial and expanded snaps, keyboard expansion, fixed footer support, and unsaved-change-safe route hosting without adding a third-party sheet dependency. File Library, course Materials, and Personal Library share one compact material filter and row presentation layer so category definitions and mutation refresh behavior stay consistent.
+
+Reusable form date fields use a themed `react-native-calendars` month sheet. Reusable time fields use `@react-native-community/datetimepicker` with a visible 12-hour AM/PM preview while preserving the existing local `HH:mm` storage boundary. Custom Course color selection uses `reanimated-color-picker`; selection is communicated by fill, border, and ring treatments instead of decorative checkmarks.
 
 The Profile & Settings screen includes a digital student card with the signed-in name, student role, active course count, near-term task count, and current theme accent. Its counts reuse existing dashboard data and introduce no new API contract.
 

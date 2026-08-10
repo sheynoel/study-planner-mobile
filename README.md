@@ -110,9 +110,9 @@ The current backend does not configure CORS, so browser authentication requests 
 ### Course Management flow
 
 - The protected `/courses` route lists only the authenticated user's courses and supports retry, empty, loading, and populated states.
-- Add and edit screens share validated fields for name, code, description, instructor, room, and a predefined color palette. Add Course may optionally create one or more existing weekly ClassSchedule records after the Course succeeds; partial schedule failures preserve the Course and report how many meetings were created.
-- Course Details is a compact scoped workspace with a course hero, Tasks/Materials/Classes metrics, and Overview, Tasks, Materials, and Schedule tabs. It requests only records belonging to that course and keeps course uploads inside Materials.
-- The responsive Courses grid shows course initials, code, pending tasks, material count, and the nearest generated class occurrence. It also includes a compact full-width Personal Library entry for files without a course.
+- Add Course is a full-screen modal with Main Title, Subtitle, optional details, preset/custom color, and grouped schedules. Mobile expands a multi-weekday schedule block into the existing one-weekday ClassSchedule requests after the Course succeeds; edit keeps the existing contract-compatible fields.
+- Course Details is a compact scoped workspace with a course hero, immediately visible Tasks, one combined Events & Notes board, a schedule summary sheet, and a short recent-Materials preview. It requests only records belonging to that course and keeps full course uploads inside Materials.
+- The responsive Courses screen uses a fixed-height two-column folder grid showing only title, subtitle, course color, and a nonzero active-task badge. A compact Personal Library utility tile sits above the grid for files without a course.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
 - Every course request uses the access token already restored by the authentication context; HTTP `401` clears the local session.
 
@@ -120,7 +120,7 @@ The current backend does not configure CORS, so browser authentication requests 
 
 - The protected Task list uses a compact weekly selector, authenticated course tabs, search, and one continuous list of neutral academic task cards with relative deadline labels.
 - A filter sheet composes priority, status, and due selections while course UUID and Personal filtering remain in horizontal tabs. Search, the local This Week projection, and five local sort options are layered over supported backend filters without adding API parameters.
-- Add and edit screens share validated title, description, course, local due date/time, priority, and status fields.
+- Add Task uses the shared adaptive sheet, calendar date picker, and 12-hour native time picker; edit retains the complete validated task form and existing request mapper.
 - A task may use “No course.” Due values entered in local device time are converted to ISO UTC; a date without a time uses 23:59 local time.
 - Completion and deletion update displayed state after the server confirms success, and Course data supplies names and codes for selectors and task cards.
 - Every Task request uses the restored JWT through the protected Task provider; HTTP `401` clears the local session.
@@ -130,10 +130,10 @@ The current backend does not configure CORS, so browser authentication requests 
 - The protected Calendar route displays a dependency-free month grid with distinct event, task-deadline, and class-meeting markers and a selected-day agenda.
 - Calendar events are requested only for the visible local month using inclusive `from` and `to` ISO timestamps. Tasks are loaded from the existing Task endpoint and only records with `dueAt` are projected into the calendar.
 - Event, task, and class records remain separate source types and open their respective detail routes.
-- Add and edit screens share validation for title, optional description/course/location/end/color, required start, optional end, and all-day behavior.
+- Add and edit screens share validation for title, optional description/course/location/end/color, required start, optional end, and all-day behavior. Their date and timed-event controls use the reusable calendar and 12-hour picker fields.
 - Local date/time inputs are converted to ISO UTC timestamps without fixed offsets. API timestamps are displayed in the device timezone.
 - The calendar refreshes on visible-month changes and whenever it regains focus after event creation, editing, or deletion.
-- The month grid uses React Native primitives already included with Expo SDK 54; no calendar dependency was added.
+- The planner month grid remains the existing React Native implementation. Reusable form date fields use `react-native-calendars`, while timed fields use Expo-compatible `@react-native-community/datetimepicker` in 12-hour mode.
 
 ### Class Schedule Management flow
 
@@ -145,7 +145,7 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### File Management flow
 
-- Settings > File Library lists all personal and course-related files. Course Details > Materials scopes the same library to one course, while Courses > Personal Library shows only files with `courseId: null`.
+- Settings > File Library lists all personal and course-related files. Course Details previews recent course files and opens the compact course-scoped Materials library, while Courses > Personal Library shows only files with `courseId: null`.
 - Shared material filters provide All, PDF, Slides, Documents, and Images categories. Slides maps to PPT/PPTX, Documents to DOC/DOCX/TXT, and Images to the supported image extensions.
 - Upload uses Expo DocumentPicker with `copyToCacheDirectory`, keeps the original URI/name/MIME type, and sends native `multipart/form-data` without manually setting a boundary or reading Base64 into JavaScript.
 - The picker and form enforce the documented 25 MiB default before upload; backend validation messages remain authoritative.

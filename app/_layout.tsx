@@ -1,6 +1,7 @@
 import { ThemeProvider, type Theme } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { AuthLoadingScreen } from '@/components/auth/auth-loading-screen';
@@ -12,7 +13,7 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  return <AppearanceProvider><ThemedRoot /></AppearanceProvider>;
+  return <GestureHandlerRootView style={{ flex: 1 }}><AppearanceProvider><ThemedRoot /></AppearanceProvider></GestureHandlerRootView>;
 }
 
 function ThemedRoot() {

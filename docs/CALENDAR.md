@@ -54,9 +54,9 @@ All routes remain inside the authenticated Expo Router group. Home, Calendar, Ta
 - Event cards show local time or all-day status and include location when present.
 - Event display colors accept the backend's optional string contract; only valid six-digit hex colors are used directly as card accents, with a safe fallback otherwise.
 
-## Dependency decision
+## Picker dependency decision
 
-No calendar package was added. The month view uses React Native `View` and `Pressable` primitives already supported by Expo SDK 54 and Expo Go. This avoids extra native or JavaScript dependency surface for a bounded month-grid requirement. The existing text-based date/time input pattern is retained for consistent Android, iOS, and web behavior.
+The main planner month view remains the existing React Native `View` and `Pressable` implementation, so its combined event/task/class projection is unchanged. Form date selection now uses the reusable themed `react-native-calendars` sheet, and timed events use Expo-compatible `@react-native-community/datetimepicker` with a 12-hour AM/PM presentation. Existing local-to-ISO conversion and backend contracts remain unchanged.
 
 ## Backend contract assumptions
 

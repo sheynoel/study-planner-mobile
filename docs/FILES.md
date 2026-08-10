@@ -6,7 +6,7 @@ This document records the online-only mobile File Management flow consuming the 
 
 - Typed safe metadata, Course summary, upload/update requests, list filters, and response envelopes with runtime response validation.
 - Protected File provider using the existing JWT session lifecycle for list, detail, upload, update, delete, and download operations.
-- File list, Personal Library, upload, detail, and edit routes. Files are no longer a primary tab; the all-files view is available from Settings and course files live in Course Details > Materials.
+- Compact File list, Personal Library, upload, detail, and edit routes. Files are no longer a primary tab; the all-files view is available from Settings, while Course Details shows three recent files before opening the full course-scoped Materials library.
 - Reusable File card, type icon, filter bar, picker field, upload form, metadata form, and download button.
 - Search, course, and all supported file-extension filters.
 - Loading, empty, error, retry, upload, edit, download-progress, and delete states with duplicate-action protection.

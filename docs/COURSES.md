@@ -13,7 +13,7 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 - Confirmation-based deletion with immediate removal from displayed state.
 - List refresh after create, detail refresh after edit, and focus refreshes when returning to Course screens.
 - A fixed-height two-column course grid on narrow phones showing only the course title, subtitle, color identity, and a pending-task badge when needed.
-- A compact Course Details workspace with one course identity/schedule card, independently collapsible course Tasks and Events, and small Materials/Notes/Calendar destinations.
+- A compact Course Details workspace with one identity/schedule card, immediately visible course Tasks, a combined Events & Notes board, and a recent Materials preview.
 - Tapping the schedule summary opens a grouped schedule sheet; its Edit schedules action retains existing class-schedule create, detail, edit, and delete routes without a permanent Schedule tab.
 - A compact Personal Library utility tile above the course grid for files without a Course.
 
@@ -30,7 +30,7 @@ The Add Course route is presented as a full-screen modal with a sticky Cancel/Ne
 
 All routes remain inside the authenticated Expo Router group. Courses are available from the five-item bottom navigation, while a missing or expired token is handled through the existing authentication guard and session cleanup.
 
-Course Details requests course-filtered Tasks, Calendar Events, and Class Schedules. The Tasks filter sheet always retains the current course scope. Add Task and Add Event route parameters preselect the current course. Materials, Notes, and Calendar open their existing experiences with the course UUID supplied as a local filter.
+Course Details requests course-filtered Tasks, Calendar Events, Notes, Class Schedules, and recent Files. The Tasks filter sheet always retains the current course scope. Add Task, Add Note, and Add Event preselect the current course. The combined Events & Notes presentation does not merge their models or endpoints. Full Materials and the existing schedule routes retain the course UUID as their local scope. The redundant Course Calendar shortcut was removed from this screen; the global Calendar route and existing deep links remain intact.
 
 ## Backend contract assumptions
 
@@ -60,7 +60,7 @@ Course Details requests course-filtered Tasks, Calendar Events, and Class Schedu
 
 ## Presentation rules
 
-Course cards use a thick colored folder header with the pending-task count inside it; zero counts are hidden. Names clamp to two lines, subtitles to one, and all cards remain the same height. Add/Edit Course uses preset swatches plus a visual hue-and-shade picker, while storage remains hexadecimal. Course time controls display 12-hour AM/PM values while retaining the backend's `HH:mm` wall-clock contract; date fields use a reusable calendar modal.
+Course cards use a thick colored folder header with the active-task count inside it; zero counts are hidden. Names clamp to two lines, subtitles to one, and all cards remain the same height. Add/Edit Course uses preset swatches plus a visual hue-and-shade picker, while storage remains hexadecimal. Course time controls display 12-hour AM/PM values while retaining the backend's `HH:mm` wall-clock contract; date fields use a reusable calendar sheet.
 
 ## Boundaries
 

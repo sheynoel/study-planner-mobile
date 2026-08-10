@@ -11,7 +11,9 @@ import {
 
 import { ErrorBanner, FormField, SubmitButton } from '@/components/auth/auth-form';
 import { ThemedText } from '@/components/themed-text';
-import { ChoiceChip } from '@/components/ui/choice-chip';
+import { CourseSelectField } from '@/components/ui/course-select-field';
+import { DatePickerField } from '@/components/ui/date-picker-field';
+import { TimePickerField } from '@/components/ui/time-picker-field';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import type { Course } from '@/lib/api/course.types';
@@ -71,27 +73,24 @@ export function CalendarEventForm({
         <FormField error={errors.description} label="Description (optional)" multiline onChangeText={(value) => updateField('description', value)} placeholder="Add useful details" style={styles.multiline} textAlignVertical="top" value={values.description} />
         <FormField error={errors.location} label="Location (optional)" onChangeText={(value) => updateField('location', value)} placeholder="Library room 204" value={values.location} />
 
-        <SelectionField label="Course (optional)">
-          <ChoiceChip label="No course" selected={values.courseId === null} onPress={() => updateField('courseId', null)} />
-          {courses.map((course) => <ChoiceChip key={course.id} label={`${course.name}${course.code ? ` (${course.code})` : ''}`} selected={values.courseId === course.id} onPress={() => updateField('courseId', course.id)} />)}
-        </SelectionField>
+        <CourseSelectField courses={courses} onChange={(courseId) => updateField('courseId', courseId)} value={values.courseId} />
 
         <ToggleRow label="All-day event" value={values.isAllDay} onValueChange={(value) => updateField('isAllDay', value)} />
         <View style={styles.dateRow}>
-          <View style={styles.flex}><FormField autoCapitalize="none" error={errors.startDate} keyboardType="numbers-and-punctuation" label="Start date" onChangeText={(value) => updateField('startDate', value)} placeholder="YYYY-MM-DD" value={values.startDate} /></View>
-          {!values.isAllDay ? <View style={styles.flex}><FormField autoCapitalize="none" error={errors.startTime} keyboardType="numbers-and-punctuation" label="Start time" onChangeText={(value) => updateField('startTime', value)} placeholder="HH:mm" value={values.startTime} /></View> : null}
+          <DatePickerField error={errors.startDate} label="Start date" onChange={(value) => updateField('startDate', value)} value={values.startDate} />
+          {!values.isAllDay ? <TimePickerField error={errors.startTime} label="Start time" onChange={(value) => updateField('startTime', value)} value={values.startTime} /> : null}
         </View>
         <ToggleRow label="Add an end date and time" value={values.hasEnd} onValueChange={(value) => updateField('hasEnd', value)} />
         {values.hasEnd ? <View style={styles.dateRow}>
-          <View style={styles.flex}><FormField autoCapitalize="none" error={errors.endDate} keyboardType="numbers-and-punctuation" label="End date" onChangeText={(value) => updateField('endDate', value)} placeholder="YYYY-MM-DD" value={values.endDate} /></View>
-          {!values.isAllDay ? <View style={styles.flex}><FormField autoCapitalize="none" error={errors.endTime} keyboardType="numbers-and-punctuation" label="End time" onChangeText={(value) => updateField('endTime', value)} placeholder="HH:mm" value={values.endTime} /></View> : null}
+          <DatePickerField error={errors.endDate} label="End date" onChange={(value) => updateField('endDate', value)} value={values.endDate} />
+          {!values.isAllDay ? <TimePickerField error={errors.endTime} label="End time" onChange={(value) => updateField('endTime', value)} value={values.endTime} /> : null}
         </View> : null}
         <ThemedText style={[styles.hint, { color: colors.textSecondary }]}>
           Dates and times use this device&apos;s timezone and are sent to the API as ISO timestamps.
         </ThemedText>
 
         <SelectionField label="Color (optional)">
-          <ChoiceChip label="Default" selected={values.color === null} onPress={() => updateField('color', null)} />
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: values.color === null }} onPress={() => updateField('color', null)} style={[styles.defaultColor, { backgroundColor: values.color === null ? colors.primaryContainer : colors.surfaceSubtle, borderColor: values.color === null ? colors.primary : colors.border }]}><ThemedText style={[styles.defaultLabel, { color: values.color === null ? colors.primary : colors.textSecondary }]}>Default</ThemedText></Pressable>
           {CALENDAR_EVENT_COLORS.map((color) => (
             <Pressable accessibilityLabel={`Select color ${color}`} accessibilityRole="button" accessibilityState={{ selected: values.color === color }} key={color} onPress={() => updateField('color', color)} style={({ pressed }) => [styles.colorChoice, { backgroundColor: color }, values.color === color ? [styles.selectedColor, { borderColor: colors.background, outlineColor: colors.primary }] : undefined, pressed ? styles.pressed : undefined]} />
           ))}
@@ -113,14 +112,16 @@ function ToggleRow({ label, onValueChange, value }: { label: string; onValueChan
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { gap: DesignTokens.layout.formGap, padding: DesignTokens.layout.screenPadding, paddingBottom: 40 },
-  multiline: { minHeight: 100 },
+  content: { gap: DesignTokens.spacing.md, padding: DesignTokens.layout.screenPadding, paddingBottom: 40 },
+  multiline: { minHeight: 82 },
   dateRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 12 },
-  hint: { fontSize: 13, lineHeight: 18, marginTop: -8 },
+  hint: { fontSize: 10.5, lineHeight: 15 },
   selectionField: { gap: 8 },
   choices: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   colorChoice: { borderRadius: 999, height: 36, width: 36 },
   selectedColor: { borderWidth: 3, outlineWidth: 2 },
+  defaultColor: { alignItems: 'center', borderRadius: DesignTokens.radius.pill, borderWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 36, paddingHorizontal: DesignTokens.spacing.md },
+  defaultLabel: { fontSize: 11, fontWeight: '700' },
   toggleRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   pressed: { opacity: 0.68 },
 });
