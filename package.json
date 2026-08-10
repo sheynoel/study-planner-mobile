@@ -9,10 +9,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "npm run test:file-filters && npm run test:material-filters && npm run test:task-filters && npm run test:dashboard && npm run test:home-dashboard && npm run test:course-creation",
+    "test": "npm run test:file-filters && npm run test:material-filters && npm run test:task-filters && npm run test:task-form && npm run test:dashboard && npm run test:home-dashboard && npm run test:course-creation",
     "test:file-filters": "node --test --experimental-strip-types lib/files/file-filters.test.mjs",
     "test:material-filters": "node --test --experimental-strip-types lib/files/material-filters.test.mjs",
     "test:task-filters": "node --test --experimental-strip-types lib/tasks/task-filters.test.mjs",
+    "test:task-form": "node --test --experimental-strip-types lib/tasks/task-form.test.mjs",
     "test:dashboard": "node --test --experimental-strip-types lib/dashboard/dashboard-data.test.mjs",
     "test:home-dashboard": "node --test --experimental-strip-types lib/dashboard/home-dashboard.test.mjs",
     "test:course-creation": "node --test --experimental-strip-types lib/courses/course-creation.test.mjs"

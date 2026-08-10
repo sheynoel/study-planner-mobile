@@ -1,18 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { BentoCard } from '@/components/ui/bento-card';
+import { formatScheduleTime } from '@/components/ui/time-picker-field';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
+import type { ClassSchedule } from '@/lib/api/class-schedule.types';
 import type { Course } from '@/lib/api/course.types';
+import { formatWeekdays, groupClassSchedules } from '@/lib/class-schedules/schedule-groups';
 
-export function CourseHero({ course, scheduleSummary }: { course: Course; scheduleSummary: string }) {
+export function CourseHero({ course, onSchedulePress, schedules }: { course: Course; onSchedulePress: () => void; schedules: ClassSchedule[] }) {
   const { colors } = useAppearance();
-  const accent = safeColor(course.color, colors.primary);
-  const initials = (course.code ?? course.name).split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
-  return <BentoCard style={styles.hero} tone="accent"><View style={[styles.accent, { backgroundColor: accent }]} /><View style={styles.heading}><View style={[styles.icon, { backgroundColor: `${accent}22` }]}><ThemedText style={[styles.initials, { color: accent }]}>{initials}</ThemedText></View><View style={styles.text}><ThemedText numberOfLines={2} style={styles.title}>{course.name}</ThemedText><ThemedText numberOfLines={1} style={[styles.code, { color: colors.textSecondary }]}>{course.code ?? 'No course code'}</ThemedText><View style={styles.schedule}><Ionicons color={colors.primary} name="time-outline" size={14} /><ThemedText numberOfLines={1} style={[styles.scheduleText, { color: colors.primary }]}>{scheduleSummary}</ThemedText></View></View></View></BentoCard>;
+  const accent = /^#[0-9a-fA-F]{6}$/.test(course.color) ? course.color : colors.primary;
+  const group = groupClassSchedules(schedules)[0];
+  return <BentoCard style={[styles.hero, { borderColor: accent }]}>
+    <View style={[styles.accent, { backgroundColor: accent }]} />
+    <View style={styles.identity}><ThemedText numberOfLines={2} style={styles.title}>{course.name}</ThemedText><ThemedText numberOfLines={1} style={[styles.subtitle, { color: colors.textSecondary }]}>{course.code ?? 'Course'}</ThemedText>{course.instructor ? <ThemedText numberOfLines={1} style={[styles.meta, { color: colors.textSecondary }]}>{course.instructor}</ThemedText> : null}</View>
+    <Pressable accessibilityHint="Opens class schedules" accessibilityRole="button" onPress={onSchedulePress} style={({ pressed }) => [styles.schedule, { backgroundColor: colors.surfaceSubtle }, pressed ? styles.pressed : undefined]}><View style={styles.scheduleText}>{group ? <><ThemedText numberOfLines={1} style={styles.days}>{formatWeekdays(group.weekdays)}</ThemedText><ThemedText numberOfLines={1} style={[styles.time, { color: colors.textSecondary }]}>{formatScheduleTime(group.startTime)}–{formatScheduleTime(group.endTime)}{group.room ? ` · ${group.room}` : ''}</ThemedText></> : <ThemedText style={[styles.time, { color: colors.textSecondary }]}>No class schedule yet</ThemedText>}</View><Ionicons color={colors.primary} name="chevron-forward" size={17} /></Pressable>
+  </BentoCard>;
 }
 
-function safeColor(color: string, fallback: string): string { return /^#[0-9a-fA-F]{6}$/.test(color) ? color : fallback; }
-const styles = StyleSheet.create({ hero: { overflow: 'hidden', padding: DesignTokens.spacing.md }, accent: { bottom: 0, left: 0, position: 'absolute', top: 0, width: 5 }, heading: { alignItems: 'center', flexDirection: 'row', gap: DesignTokens.spacing.md }, icon: { alignItems: 'center', borderRadius: DesignTokens.radius.md, height: 46, justifyContent: 'center', width: 46 }, initials: { fontSize: 14, fontWeight: '800' }, text: { flex: 1, gap: 2, minWidth: 0 }, title: { fontSize: 20, fontWeight: '700', lineHeight: 24 }, code: { fontSize: 12, lineHeight: 16 }, schedule: { alignItems: 'center', flexDirection: 'row', gap: 4, minWidth: 0 }, scheduleText: { flex: 1, fontSize: 12, fontWeight: '600', lineHeight: 16 } });
+const styles = StyleSheet.create({ hero: { borderWidth: 1, gap: DesignTokens.spacing.md, overflow: 'hidden', padding: DesignTokens.spacing.md }, accent: { bottom: 0, left: 0, position: 'absolute', top: 0, width: 4 }, identity: { gap: 2, minWidth: 0, paddingLeft: 3 }, title: { fontSize: 20, fontWeight: '800', lineHeight: 24 }, subtitle: { fontSize: 13, fontWeight: '600', lineHeight: 18 }, meta: { fontSize: 11, lineHeight: 15, marginTop: 3 }, schedule: { alignItems: 'center', borderRadius: DesignTokens.radius.md, flexDirection: 'row', gap: DesignTokens.spacing.sm, minHeight: 54, paddingHorizontal: DesignTokens.spacing.md, paddingVertical: DesignTokens.spacing.sm }, scheduleText: { flex: 1, gap: 1, minWidth: 0 }, days: { fontSize: 12, fontWeight: '800', lineHeight: 16 }, time: { fontSize: 11, lineHeight: 15 }, pressed: { opacity: 0.68 } });

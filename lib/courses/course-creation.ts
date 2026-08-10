@@ -4,6 +4,10 @@ export type CourseCreationResult<TCourse> = {
   scheduleError: unknown | null;
 };
 
+export function expandWeekdaySchedules<TShared extends object, TWeekday>(values: Array<TShared & { weekdays: TWeekday[] }>): Array<TShared & { weekday: TWeekday }> {
+  return values.flatMap(({ weekdays, ...sharedValues }) => weekdays.map((weekday) => ({ ...sharedValues, weekday } as TShared & { weekday: TWeekday })));
+}
+
 export async function createCourseWithSchedules<TCourse extends { id: string }, TSchedule>(
   createCourse: () => Promise<TCourse>,
   schedules: TSchedule[],

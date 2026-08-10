@@ -10,7 +10,6 @@ import { useCourses } from '@/contexts/course-context';
 import { useFiles } from '@/contexts/file-context';
 import type { UploadFileRequest } from '@/lib/api/file.types';
 import { fileRoutes } from '@/lib/files/routes';
-import { courseRoutes } from '@/lib/courses/routes';
 
 export default function UploadFileScreen() {
   const params = useLocalSearchParams<{ courseId?: string | string[]; library?: string | string[] }>();
@@ -22,7 +21,7 @@ export default function UploadFileScreen() {
   async function submit(request: UploadFileRequest) {
     await uploadFile(request);
     if (courseId || library === 'personal') {
-      router.replace(request.courseId ? courseRoutes.workspace(request.courseId, 'materials') : fileRoutes.personal);
+      router.replace(request.courseId ? fileRoutes.forCourse(request.courseId) : fileRoutes.personal);
       return;
     }
     router.replace(fileRoutes.list);

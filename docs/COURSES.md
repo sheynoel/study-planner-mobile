@@ -12,10 +12,12 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 - Local form validation matching backend maximum lengths and hexadecimal color requirements.
 - Confirmation-based deletion with immediate removal from displayed state.
 - List refresh after create, detail refresh after edit, and focus refreshes when returning to Course screens.
-- A responsive two-column course-folder grid (single-column on narrow phones) showing initials, code, pending Tasks, material counts, and the nearest class occurrence in the next two weeks.
-- A compact Course Details workspace with course identity, schedule summary, Tasks/Materials/Classes metrics, and horizontally scrollable Overview, Tasks, Materials, Schedule, and Notes tabs.
-- Overview surfaces course information, next class, nearest deadline, recent materials, and a two-meeting schedule preview. The full Schedule tab retains existing class-schedule create, detail, edit, and delete flows.
-- A compact full-width Personal Library entry for files without a Course.
+- A fixed-height two-column course grid on narrow phones showing only the course title, subtitle, color identity, and a pending-task badge when needed.
+- A compact Course Details workspace with one course identity/schedule card, independently collapsible course Tasks and Events, and small Materials/Notes/Calendar destinations.
+- Tapping the schedule summary opens a grouped schedule sheet; its Edit schedules action retains existing class-schedule create, detail, edit, and delete routes without a permanent Schedule tab.
+- A compact Personal Library utility tile above the course grid for files without a Course.
+
+The Add Course route is presented as a full-screen modal with a sticky Cancel/New Course/Create header. It labels the existing `name` and `code` contract as Main Title and Subtitle, omits the course-level room field, and groups optional details, color, and schedules into compact cards. A schedule block accepts multiple weekday chips with shared time, room, and semester dates; mobile expands those selections into one existing ClassSchedule create call per weekday.
 
 ## Route flow
 
@@ -28,7 +30,7 @@ This document records the mobile portion of roadmap phase 4. It consumes the exi
 
 All routes remain inside the authenticated Expo Router group. Courses are available from the five-item bottom navigation, while a missing or expired token is handled through the existing authentication guard and session cleanup.
 
-Course Details requests `GET /tasks?courseId=:id`, `GET /files?courseId=:id`, `GET /class-schedules?courseId=:id`, and `GET /notes?courseId=:id`; its tabs do not request unrelated course records. Overview shows the nearest deadline, next generated class occurrence, recent materials, and a schedule preview. Materials reuses the shared File Library behavior with the Course fixed to its UUID.
+Course Details requests course-filtered Tasks, Calendar Events, and Class Schedules. The Tasks filter sheet always retains the current course scope. Add Task and Add Event route parameters preselect the current course. Materials, Notes, and Calendar open their existing experiences with the course UUID supplied as a local filter.
 
 ## Backend contract assumptions
 
@@ -58,7 +60,7 @@ Course Details requests `GET /tasks?courseId=:id`, `GET /files?courseId=:id`, `G
 
 ## Presentation rules
 
-Course colors are restrained to initials, dots, and side accents. Names clamp to two lines and metadata to one line so long course names, codes, and localized next-class labels do not overlap adjacent cards. Next class is generated from the existing weekly schedule definitions in the same local-time manner as Calendar; no schedule records are duplicated.
+Course cards use a thick colored folder header with the pending-task count inside it; zero counts are hidden. Names clamp to two lines, subtitles to one, and all cards remain the same height. Add/Edit Course uses preset swatches plus a visual hue-and-shade picker, while storage remains hexadecimal. Course time controls display 12-hour AM/PM values while retaining the backend's `HH:mm` wall-clock contract; date fields use a reusable calendar modal.
 
 ## Boundaries
 

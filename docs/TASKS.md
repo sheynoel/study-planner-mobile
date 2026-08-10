@@ -6,9 +6,9 @@ This document records the mobile portion of roadmap phase 5. It consumes the pro
 
 - Typed Task models, status and priority values, requests, filters, and response envelopes with runtime validation.
 - A protected Task provider that sources the JWT from the authentication context and owns displayed Task state.
-- Task list, add, details, and edit routes within the authenticated Expo Router group.
+- Task list, modal-sheet add, details, and edit routes within the authenticated Expo Router group.
 - Combined personal and course-related display using Course names and codes from the existing Course provider.
-- Reusable weekly selector, course tabs, filter and sort sheets, compact academic Task card, form, status chip, and priority chip components plus existing loading, error, and empty states.
+- Reusable weekly selector, course tabs, filter and sort sheets, compact academic Task card, course selector, calendar date picker, 12-hour time picker, forms, status chip, and priority controls plus existing loading, error, and empty states.
 - Course UUID/personal tabs plus selected-date, priority, status, due, and search filtering.
 - Deadline-soonest, deadline-latest, priority, recently-added, and alphabetical sorting.
 - Client validation for title, description, local due date/time, course, status, and priority.
@@ -29,11 +29,15 @@ Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` v
 
 ## Date and time behavior
 
-- The form accepts `YYYY-MM-DD` and optional 24-hour `HH:mm` values in the device's local timezone.
+- Add Task displays a themed calendar month grid and 12-hour AM/PM time picker; internal form values remain local `YYYY-MM-DD` and `HH:mm` strings for the existing mapper.
 - A date without a time becomes 23:59 local time.
 - Mobile converts the local value to an ISO 8601 UTC timestamp before sending `dueAt`.
 - Existing UTC timestamps are converted back to local date and time when editing or displaying a task.
 - The backend owns `today`, `upcoming`, and `overdue` filter boundaries in UTC. The mobile overdue marker compares the current instant and hides overdue treatment once a task is completed.
+
+## Add Task presentation
+
+`/tasks/new` is a transparent partial-height modal so the originating Tasks or Course screen remains visible behind a dim overlay. It expands while the keyboard is visible, keeps Add Task reachable in a fixed footer, and offers guarded drag-handle/backdrop dismissal when the form is dirty. Creation presents title, compact course selection, optional due date/time, priority, and optional details. Status is not requested and remains the existing `TODO`/Assigned default.
 
 ## Backend contract assumptions
 

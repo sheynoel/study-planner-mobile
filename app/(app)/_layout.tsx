@@ -19,7 +19,10 @@ export default function AppLayout() {
               <DashboardProvider>
                 <NoteProvider>
                   <HomeProvider>
-                    <Stack screenOptions={{ headerShown: false }} />
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="courses/new" options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
+                      <Stack.Screen name="tasks/new" options={{ animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false, presentation: 'transparentModal' }} />
+                    </Stack>
                   </HomeProvider>
                 </NoteProvider>
               </DashboardProvider>

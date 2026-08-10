@@ -14,12 +14,13 @@ import { parseLocalDate } from '@/lib/calendar/calendar-date';
 import { calendarRoutes } from '@/lib/calendar/routes';
 
 export default function AddCalendarEventScreen() {
-  const params = useLocalSearchParams<{ date?: string | string[] }>();
+  const params = useLocalSearchParams<{ courseId?: string | string[]; date?: string | string[] }>();
   const requestedDate = Array.isArray(params.date) ? params.date[0] : params.date;
+  const courseId = Array.isArray(params.courseId) ? params.courseId[0] : params.courseId;
   const { createEvent } = useCalendar();
   const { courses, listError, listStatus, loadCourses } = useCourses();
   const refreshCourses = useCallback(() => loadCourses(), [loadCourses]);
-  const initialValues = useMemo(() => createEmptyCalendarEventForm(requestedDate ? parseLocalDate(requestedDate) ?? new Date() : new Date()), [requestedDate]);
+  const initialValues = useMemo(() => ({ ...createEmptyCalendarEventForm(requestedDate ? parseLocalDate(requestedDate) ?? new Date() : new Date()), courseId: courseId ?? null }), [courseId, requestedDate]);
 
   useEffect(() => { void refreshCourses().catch(() => undefined); }, [refreshCourses]);
 

@@ -42,6 +42,7 @@ type CalendarContextValue = {
   deleteEvent: (id: string) => Promise<void>;
   getCachedEvent: (id: string) => CalendarEvent | undefined;
   loadEvent: (id: string) => Promise<CalendarEvent>;
+  loadCourseEvents: (courseId: string) => Promise<CalendarEvent[]>;
   loadRange: (range: CalendarRange) => Promise<void>;
   refresh: () => Promise<void>;
   updateEvent: (id: string, request: UpdateCalendarEventRequest) => Promise<CalendarEvent>;
@@ -114,6 +115,11 @@ export function CalendarProvider({ children }: PropsWithChildren) {
     return response.data.event;
   }, [runAuthenticated, upsertEvent]);
 
+  const loadCourseEvents = useCallback(async (courseId: string) => {
+    const response = await runAuthenticated((token) => getCalendarEvents(token, { courseId }));
+    return response.data.events;
+  }, [runAuthenticated]);
+
   const refreshAfterMutation = useCallback(async () => {
     try { await refresh(); } catch { /* Preserve the confirmed mutation response. */ }
   }, [refresh]);
@@ -160,12 +166,13 @@ export function CalendarProvider({ children }: PropsWithChildren) {
     deleteEvent,
     getCachedEvent,
     loadEvent,
+    loadCourseEvents,
     loadRange,
     refresh,
     updateEvent,
   }), [
     createEvent, deleteEvent, events, getCachedEvent, items, listError, listStatus,
-    loadEvent, loadRange, refresh, updateEvent,
+    loadCourseEvents, loadEvent, loadRange, refresh, updateEvent,
   ]);
 
   return <CalendarContext.Provider value={value}>{children}</CalendarContext.Provider>;

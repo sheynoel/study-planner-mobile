@@ -5,6 +5,7 @@ import { ErrorBanner, FormField, SubmitButton } from '@/components/auth/auth-for
 import { TimeRangeField } from '@/components/class-schedules/time-range-field';
 import { WeekdayPicker } from '@/components/class-schedules/weekday-picker';
 import { ThemedText } from '@/components/themed-text';
+import { DatePickerField } from '@/components/ui/date-picker-field';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
@@ -57,10 +58,7 @@ export function ClassScheduleForm({ course, initialValues, loadingLabel, onSubmi
         <WeekdayPicker value={values.weekday} onChange={(value) => update('weekday', value)} />
         <TimeRangeField startTime={values.startTime} endTime={values.endTime} startError={errors.startTime} endError={errors.endTime} onStartChange={(value) => update('startTime', value)} onEndChange={(value) => update('endTime', value)} />
         <FormField error={errors.room} label="Room (optional)" onChangeText={(value) => update('room', value)} placeholder="Room 402" value={values.room} />
-        <View style={styles.row}>
-          <View style={styles.flex}><FormField autoCapitalize="none" error={errors.startDate} keyboardType="numbers-and-punctuation" label="Starts on" onChangeText={(value) => update('startDate', value)} placeholder="YYYY-MM-DD" value={values.startDate} /></View>
-          <View style={styles.flex}><FormField autoCapitalize="none" error={errors.endDate} keyboardType="numbers-and-punctuation" label="Ends on" onChangeText={(value) => update('endDate', value)} placeholder="YYYY-MM-DD" value={values.endDate} /></View>
-        </View>
+        <View style={styles.row}><DatePickerField error={errors.startDate} label="Starts" onChange={(value) => update('startDate', value)} value={values.startDate} /><DatePickerField error={errors.endDate} label="Ends" onChange={(value) => update('endDate', value)} value={values.endDate} /></View>
         <ThemedText style={[styles.hint, { color: colors.textSecondary }]}>The meeting repeats weekly on the selected weekday within this inclusive date range.</ThemedText>
         <SubmitButton disabled={isSubmitting} label={submitLabel} loadingLabel={loadingLabel} onPress={() => void handleSubmit()} />
       </ScrollView>
