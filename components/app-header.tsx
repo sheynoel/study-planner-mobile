@@ -5,12 +5,14 @@ import { DesignTokens } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export function AppHeader({
+  compactTitle = false,
   onBack,
   onRightAction,
   rightActionLabel,
   subtitle,
   title,
 }: {
+  compactTitle?: boolean;
   onBack?: () => void;
   onRightAction?: () => void;
   rightActionLabel?: string;
@@ -31,7 +33,7 @@ export function AppHeader({
             <ThemedText type="subtitle">‹</ThemedText>
           </Pressable>
         ) : null}
-        <ThemedText type="title" numberOfLines={2} style={styles.title}>
+        <ThemedText type="title" numberOfLines={2} style={[styles.title, compactTitle ? styles.compactTitle : undefined]}>
           {title}
         </ThemedText>
         {onRightAction && rightActionLabel ? (
@@ -70,6 +72,10 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
+  },
+  compactTitle: {
+    fontSize: 26,
+    lineHeight: 32,
   },
   rightAction: {
     justifyContent: 'center',

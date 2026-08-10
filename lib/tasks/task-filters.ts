@@ -1,8 +1,8 @@
 import type { Task, TaskFilters, TaskPriority, TaskStatus } from '@/lib/api/task.types';
 
-export type TaskDueSelection = 'any' | 'today' | 'this_week' | 'overdue';
+export type TaskDueSelection = 'any' | 'today' | 'this_week' | 'this_month' | 'overdue';
 export type TaskCourseSelection = string | 'personal' | undefined;
-export type TaskSortOption = 'deadline_soonest' | 'deadline_latest' | 'priority' | 'created' | 'alphabetical';
+export type TaskSortOption = 'deadline_soonest' | 'deadline_latest' | 'priority' | 'created' | 'created_oldest' | 'course' | 'alphabetical';
 
 export type TaskFilterState = {
   courseId?: TaskCourseSelection;
@@ -39,7 +39,7 @@ export function filterTasksLocally(tasks: Task[], state: TaskFilterState, course
   return tasks.filter((task) => {
     if (state.courseId === 'personal' && task.courseId !== null) return false;
     if (state.courseId && state.courseId !== 'personal' && task.courseId !== state.courseId) return false;
-    if (state.status && task.status !== state.status) return false;
+    if (state.status ? task.status !== state.status : task.status === 'COMPLETED') return false;
     if (state.priority && task.priority !== state.priority) return false;
     if (state.selectedDate && (!task.dueAt || toLocalDateKey(task.dueAt) !== state.selectedDate)) return false;
     if (state.due === 'today' && (!task.dueAt || toLocalDateKey(task.dueAt) !== toLocalDateKey(now))) return false;
@@ -49,22 +49,31 @@ export function filterTasksLocally(tasks: Task[], state: TaskFilterState, course
       const due = new Date(task.dueAt);
       if (due < startOfDay(now) || due > weekEnd) return false;
     }
+    if (state.due === 'this_month') {
+      if (!task.dueAt) return false;
+      const due = new Date(task.dueAt);
+      if (due.getFullYear() !== now.getFullYear() || due.getMonth() !== now.getMonth()) return false;
+    }
     if (!query) return true;
     const searchable = [task.title, task.description ?? '', task.courseId ? courseName(task.courseId) ?? '' : 'personal'].join(' ').toLocaleLowerCase();
     return searchable.includes(query);
   });
 }
 
-export function sortTasks(tasks: Task[], option: TaskSortOption): Task[] {
+export function sortTasks(tasks: Task[], option: TaskSortOption, courseName: (courseId: string) => string | undefined = () => undefined): Task[] {
   const priorityRank: Record<TaskPriority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
   return [...tasks].sort((left, right) => {
     if (option === 'priority') return priorityRank[left.priority] - priorityRank[right.priority] || dueTime(left) - dueTime(right);
     if (option === 'created') return Date.parse(right.createdAt) - Date.parse(left.createdAt);
+    if (option === 'created_oldest') return Date.parse(left.createdAt) - Date.parse(right.createdAt);
+    if (option === 'course') return taskCourseLabel(left, courseName).localeCompare(taskCourseLabel(right, courseName)) || dueTime(left) - dueTime(right);
     if (option === 'alphabetical') return left.title.localeCompare(right.title);
     if (option === 'deadline_latest') return compareLatestDeadline(left, right) || priorityRank[left.priority] - priorityRank[right.priority];
     return dueTime(left) - dueTime(right) || priorityRank[left.priority] - priorityRank[right.priority];
   });
 }
+
+function taskCourseLabel(task: Task, courseName: (courseId: string) => string | undefined): string { return task.courseId ? courseName(task.courseId) ?? '' : 'Personal'; }
 
 function dueTime(task: Task): number { return task.dueAt ? Date.parse(task.dueAt) : Number.MAX_SAFE_INTEGER; }
 function compareLatestDeadline(left: Task, right: Task): number {

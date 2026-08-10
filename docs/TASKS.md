@@ -9,8 +9,8 @@ This document records the mobile portion of roadmap phase 5. It consumes the pro
 - Task list, modal-sheet add, details, and edit routes within the authenticated Expo Router group.
 - Combined personal and course-related display using Course names and codes from the existing Course provider.
 - Reusable weekly selector, course tabs, filter and sort sheets, compact academic Task card, course selector, calendar date picker, 12-hour time picker, forms, status chip, and priority controls plus existing loading, error, and empty states.
-- Course UUID/personal tabs plus selected-date, priority, status, due, and search filtering.
-- Deadline-soonest, deadline-latest, priority, recently-added, and alphabetical sorting.
+- Course UUID/personal tabs plus selected-date, priority, status, due, and search filtering. Completed tasks stay out of the default active view and are available through the Completed status filter.
+- Deadline soonest/latest, created newest/oldest, priority, course, and alphabetical sorting.
 - Client validation for title, description, local due date/time, course, status, and priority.
 - Completion with duplicate-request protection, editing with server refresh, and confirmation-based deletion.
 
@@ -23,7 +23,7 @@ This document records the mobile portion of roadmap phase 5. It consumes the pro
 /tasks/:id/edit           Edit task
 ```
 
-The Task list is available through the five-item authenticated bottom navigation. It presents one continuous compact list; relative urgency remains on each card rather than creating separate deadline or completion groups.
+The Task list is available through the five-item authenticated bottom navigation. It presents one continuous compact active list with shallow rows, one-line titles, course-color edge accents, relative deadlines, and small priority indicators. The leading checkbox completes a task through the existing endpoint and removes it from the active view after success. Completed history uses the same compact row treatment through the filter sheet.
 
 Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` values remain server filters. Search, Personal, This Week, and presentation sorting are applied locally to the server result because the backend has no corresponding query parameters. The filter sheet never sends the `personal` or `this_week` UI values to the API.
 
@@ -37,7 +37,7 @@ Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` v
 
 ## Add Task presentation
 
-`/tasks/new` is a transparent partial-height modal so the originating Tasks or Course screen remains visible behind a dim overlay. It expands while the keyboard is visible, keeps Add Task reachable in a fixed footer, and offers guarded drag-handle/backdrop dismissal when the form is dirty. Creation presents title, compact course selection, optional due date/time, priority, and optional details. Status is not requested and remains the existing `TODO`/Assigned default.
+`/tasks/new` is a transparent bottom sheet so the originating Tasks or Course screen remains visible behind a dim overlay. It opens at roughly 75% height, expands to 96% on upward drag or keyboard focus, and collapses before downward-drag dismissal. Backdrop, back-button, and drag dismissal all retain the unsaved-change guard. Add Task remains reachable in the fixed footer. Creation presents title, compact course selection, optional due date/time, priority, and optional details. Status is not requested and remains the existing `TODO`/Assigned default.
 
 ## Backend contract assumptions
 
@@ -61,7 +61,7 @@ Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` v
 7. Enter invalid title/date/time values and confirm validation; create valid dated tasks and confirm local display.
 8. Exercise every course, date, status, priority, and due filter plus every sort option and verify overdue treatment.
 9. Open details, edit every field, remove a Course association, save, and confirm detail/list refresh.
-10. Mark a task complete from details and verify the list refreshes with compact completed styling.
+10. Mark a task complete from the list checkbox, verify the pending indicator and active-row removal, then select Completed in Filter Tasks and verify the checked history row.
 11. Cancel deletion once, then confirm deletion and verify the task is absent from the list.
 12. Sign out and verify Task routes are no longer accessible.
 

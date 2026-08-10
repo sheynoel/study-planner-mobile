@@ -25,4 +25,4 @@ function CourseTab({ accent, label, onPress, selected }: { accent?: string; labe
 
 function shortName(name: string): string { return name.length > 12 ? `${name.slice(0, 11)}…` : name; }
 
-const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.lg, paddingHorizontal: DesignTokens.layout.screenPadding }, tab: { justifyContent: 'flex-end', minHeight: DesignTokens.size.touchTarget, paddingTop: DesignTokens.spacing.sm }, label: { fontSize: 14, fontWeight: '700', maxWidth: 112 }, underline: { borderRadius: DesignTokens.radius.pill, height: 3, marginTop: DesignTokens.spacing.xs }, pressed: { opacity: 0.68 } });
+const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.md, paddingHorizontal: DesignTokens.layout.screenPadding }, tab: { justifyContent: 'flex-end', minHeight: 38, paddingTop: DesignTokens.spacing.xs }, label: { fontSize: 12, fontWeight: '700', maxWidth: 96 }, underline: { borderRadius: DesignTokens.radius.pill, height: 2, marginTop: DesignTokens.spacing.xs }, pressed: { opacity: 0.68 } });
