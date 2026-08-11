@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -45,6 +46,7 @@ export function ClassScheduleProvider({ children }: PropsWithChildren) {
   const [schedules, setSchedules] = useState<ClassSchedule[]>([]);
   const [listStatus, setListStatus] = useState<ListStatus>('idle');
   const [listError, setListError] = useState<string | null>(null);
+  const listRequestId = useRef(0);
 
   const runAuthenticated = useCallback(async <T,>(request: (token: string) => Promise<T>) => {
     if (!accessToken) throw new Error('Your session is unavailable. Please sign in again.');
@@ -68,12 +70,16 @@ export function ClassScheduleProvider({ children }: PropsWithChildren) {
   }, [runAuthenticated]);
 
   const loadCourseSchedules = useCallback(async (courseId: string) => {
+    const requestId = ++listRequestId.current;
     setListStatus('loading');
     setListError(null);
     try {
-      setSchedules(await fetchSchedules({ courseId }));
+      const loaded = await fetchSchedules({ courseId });
+      if (requestId !== listRequestId.current) return;
+      setSchedules(loaded);
       setListStatus('success');
     } catch (error) {
+      if (requestId !== listRequestId.current) return;
       setListError(getApiErrorMessage(error));
       setListStatus('error');
       throw error;

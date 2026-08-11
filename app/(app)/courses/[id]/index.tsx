@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { ErrorBanner } from '@/components/auth/auth-form';
 import { CourseEventCard } from '@/components/courses/course-event-card';
 import { CourseHero } from '@/components/courses/course-hero';
 import { CourseMaterialRow } from '@/components/courses/course-material-row';
@@ -77,6 +78,7 @@ export default function CourseDetailsScreen() {
     {isLoading && !course ? <LoadingSkeleton rows={4} /> : null}
     {loadError && !course ? <ErrorState message={loadError} onRetry={() => void refresh()} /> : null}
     {course && courseId ? <ScrollView contentContainerStyle={styles.content}>
+      <ErrorBanner message={loadError} />
       <CourseHero course={course} onSchedulePress={() => setScheduleVisible(true)} schedules={schedules} />
       <WorkspaceSection actions={<SectionAction icon="options-outline" label={activeTaskFilterCount(taskFilters) ? `Filter ${activeTaskFilterCount(taskFilters)}` : 'Filter'} onPress={() => setFilterVisible(true)} />} title="Tasks"><View style={styles.list}>{visibleTasks.length ? visibleTasks.map((task) => <AcademicTaskCard course={course} isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>{courseTasks.length ? 'No active tasks match this filter.' : 'No active tasks yet.'}</ThemedText>}</View></WorkspaceSection>
       <WorkspaceSection title="Events & Notes">{upcomingEvents.length || courseNotes.length ? <View style={styles.cardGrid}>{courseNotes.filter((note) => note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}{upcomingEvents.map((event) => <CourseEventCard event={event} key={event.id} onPress={() => router.push(calendarRoutes.details(event.id))} width={cardWidth} />)}{courseNotes.filter((note) => !note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}</View> : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No events or notes yet.</ThemedText>}</WorkspaceSection>

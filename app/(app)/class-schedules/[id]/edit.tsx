@@ -33,7 +33,8 @@ export default function EditClassScheduleScreen() {
     if (!schedule) throw new Error('The class schedule is unavailable.');
     const request = toCreateScheduleRequest(schedule.courseId, values);
     await updateSchedule(schedule.id, request);
-    router.replace(classScheduleRoutes.details(schedule.id));
+    if (router.canGoBack()) router.back();
+    else router.replace(classScheduleRoutes.details(schedule.id));
   }
 
   function retry() {

@@ -27,7 +27,8 @@ export default function EditFileScreen() {
   async function submit(request: UpdateFileRequest) {
     if (!file) throw new Error('The file is unavailable.');
     await updateFile(file.id, request);
-    router.replace(fileRoutes.details(file.id));
+    if (router.canGoBack()) router.back();
+    else router.replace(fileRoutes.details(file.id));
   }
   function retry() {
     if (!fileId) return;

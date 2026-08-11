@@ -42,7 +42,11 @@ export default function FileDetailsScreen() {
   async function performDelete() {
     if (!file || deleting) return;
     setDeleting(true); setError(null);
-    try { await deleteFile(file.id); router.back(); }
+    try {
+      await deleteFile(file.id);
+      if (router.canGoBack()) router.back();
+      else router.replace(fileRoutes.list);
+    }
     catch (reason) { setError(getApiErrorMessage(reason)); setDeleting(false); }
   }
 

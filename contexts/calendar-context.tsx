@@ -60,6 +60,7 @@ export function CalendarProvider({ children }: PropsWithChildren) {
   const [listStatus, setListStatus] = useState<CalendarListStatus>('idle');
   const [listError, setListError] = useState<string | null>(null);
   const activeRange = useRef<CalendarRange | null>(null);
+  const listRequestId = useRef(0);
   const [displayedRange, setDisplayedRange] = useState<CalendarRange | null>(null);
 
   const runAuthenticated = useCallback(
@@ -82,6 +83,7 @@ export function CalendarProvider({ children }: PropsWithChildren) {
   }, []);
 
   const loadRange = useCallback(async (range: CalendarRange) => {
+    const requestId = ++listRequestId.current;
     activeRange.current = range;
     setDisplayedRange(range);
     setListStatus('loading');
@@ -93,11 +95,13 @@ export function CalendarProvider({ children }: PropsWithChildren) {
         fetchSchedules({ from: range.firstDate, to: range.lastDate }),
         loadCourses(),
       ]);
+      if (requestId !== listRequestId.current) return;
       setEvents(eventResponse.data.events);
       setTasks(taskResponse.data.tasks.filter((task) => task.dueAt !== null));
       setSchedules(scheduleResponse);
       setListStatus('success');
     } catch (error) {
+      if (requestId !== listRequestId.current) return;
       setListError(getApiErrorMessage(error));
       setListStatus('error');
       throw error;

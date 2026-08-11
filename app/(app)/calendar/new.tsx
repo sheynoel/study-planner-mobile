@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
+import { ErrorBanner } from '@/components/auth/auth-form';
 import { CalendarEventForm } from '@/components/calendar/calendar-event-form';
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet';
 import { ErrorState, LoadingState } from '@/components/ui/async-state';
@@ -24,6 +25,9 @@ export default function AddCalendarEventScreen() {
   const allowClose = useRef(false);
   const refreshCourses = useCallback(() => loadCourses(), [loadCourses]);
   const initialValues = useMemo(() => ({ ...createEmptyCalendarEventForm(requestedDate ? parseLocalDate(requestedDate) ?? new Date() : new Date()), courseId: courseId ?? null }), [courseId, requestedDate]);
+  const hasUsableCourses = courses.length > 0;
+  const canRenderForm = listStatus === 'success' || hasUsableCourses || (listStatus === 'error' && !courseId);
+  const selectedCourseUnavailable = listStatus === 'success' && Boolean(courseId) && !courses.some((course) => course.id === courseId);
 
   useEffect(() => { void refreshCourses().catch(() => undefined); }, [refreshCourses]);
   usePreventRemove(dirty && !allowClose.current, ({ data }) => { Alert.alert('Discard this event?', 'Your unsaved event will be lost.', [{ text: 'Keep editing', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(data.action) }]); });
@@ -37,8 +41,9 @@ export default function AddCalendarEventScreen() {
   }
 
   return <AppBottomSheet expandable expandedSnap={0.96} initialSnap={0.76} modal={false} onClose={close} title="Add Event">
-    {listStatus === 'idle' || listStatus === 'loading' ? <LoadingState label="Loading courses..." /> : null}
-    {listStatus === 'error' ? <ErrorState message={listError ?? 'Courses could not be loaded.'} onRetry={() => void refreshCourses().catch(() => undefined)} /> : null}
-    {listStatus === 'success' ? <CalendarEventForm courses={courses} initialValues={initialValues} loadingLabel="Creating event..." onDirtyChange={setDirty} onSubmit={handleCreate} onSubmittingChange={setSubmitting} submitLabel="Add Event" /> : null}
+    {(listStatus === 'idle' || listStatus === 'loading') && !hasUsableCourses ? <LoadingState label="Loading courses..." /> : null}
+    {listStatus === 'error' && !canRenderForm ? <ErrorState message={listError ?? 'Courses could not be loaded.'} onRetry={() => void refreshCourses().catch(() => undefined)} /> : null}
+    {selectedCourseUnavailable ? <ErrorState message="The selected course is no longer available." onRetry={() => void refreshCourses().catch(() => undefined)} /> : null}
+    {canRenderForm && !selectedCourseUnavailable ? <><ErrorBanner message={listStatus === 'error' ? listError : null} /><CalendarEventForm courses={courses} initialValues={initialValues} loadingLabel="Creating event..." onDirtyChange={setDirty} onSubmit={handleCreate} onSubmittingChange={setSubmitting} submitLabel="Add Event" /></> : null}
   </AppBottomSheet>;
 }

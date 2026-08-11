@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -39,6 +40,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [listStatus, setListStatus] = useState<CourseListStatus>('idle');
   const [listError, setListError] = useState<string | null>(null);
+  const listRequestId = useRef(0);
 
   const runAuthenticated = useCallback(
     async <T,>(request: (accessToken: string) => Promise<T>): Promise<T> => {
@@ -74,14 +76,17 @@ export function CourseProvider({ children }: PropsWithChildren) {
   }, []);
 
   const loadCourses = useCallback(async () => {
+    const requestId = ++listRequestId.current;
     setListStatus('loading');
     setListError(null);
 
     try {
       const response = await runAuthenticated((token) => getCoursesRequest(token));
+      if (requestId !== listRequestId.current) return;
       setCourses(response.data.courses);
       setListStatus('success');
     } catch (error) {
+      if (requestId !== listRequestId.current) return;
       setListError(getApiErrorMessage(error));
       setListStatus('error');
       throw error;

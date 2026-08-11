@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { ErrorBanner } from '@/components/auth/auth-form';
 import { AppSectionTabs } from '@/components/app-section-tabs';
 import { CalendarAgenda } from '@/components/calendar/calendar-agenda';
 import { CalendarDisplaySheet } from '@/components/calendar/calendar-display-sheet';
@@ -38,7 +39,7 @@ export default function CalendarScreen() {
   const { colors } = useAppearance();
   const { items, listError, listStatus, loadRange } = useCalendar();
   const { courses } = useCourses();
-  const { loadNotes, notes } = useNotes();
+  const { listError: noteListError, listStatus: noteListStatus, loadNotes, notes } = useNotes();
   const { preferences, setPreferences } = useCalendarDisplayPreferences();
   const [month, setMonth] = useState(() => parseLocalDate(initialDate) ?? new Date());
   const [selectedDate, setSelectedDate] = useState(initialDate);
@@ -74,6 +75,7 @@ export default function CalendarScreen() {
       <View style={[styles.calendarSurface, { backgroundColor: colors.surface, borderColor: colors.border }]}><MonthCalendar density={preferences.density} items={visibleItems} month={month} onMonthChange={selectMonth} onSelectDate={selectDate} selectedDate={selectedDate} /></View>
       {loading ? <LoadingSkeleton rows={1} /> : null}
       {listStatus === 'error' ? <ErrorState message={listError ?? 'Calendar items could not be loaded.'} onRetry={() => void refresh().catch(() => undefined)} /> : null}
+      {listStatus === 'success' && noteListStatus === 'error' ? <View style={styles.banner}><ErrorBanner message={noteListError ?? 'Calendar notes could not be loaded.'} /></View> : null}
       {listStatus === 'success' ? <CalendarAgenda items={selectedItems} onOpenItem={openItem} selectedDate={selectedDate} /> : null}
     </ScrollView>
     <MonthYearPickerSheet month={month} onClose={() => setMonthPickerVisible(false)} onGo={selectMonth} visible={monthPickerVisible} />
@@ -84,4 +86,4 @@ export default function CalendarScreen() {
 
 function ToolbarButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) { const { colors } = useAppearance(); return <Pressable accessibilityLabel={label} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.toolbarButton, pressed ? styles.pressed : undefined]}><Ionicons color={colors.primary} name={icon} size={20} /></Pressable>; }
 function validDateInMonth(current: string, target: Date): string { const parsed = parseLocalDate(current); const preferredDay = parsed?.getDate() ?? 1; const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate(); return toLocalDateKey(new Date(target.getFullYear(), target.getMonth(), Math.min(preferredDay, lastDay))); }
-const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.sm, paddingBottom: 132 }, toolbar: { alignItems: 'center', flexDirection: 'row', paddingHorizontal: DesignTokens.layout.screenPadding }, monthControls: { alignItems: 'center', flex: 1, flexDirection: 'row', minWidth: 0 }, toolbarButton: { alignItems: 'center', height: DesignTokens.size.touchTarget, justifyContent: 'center', width: DesignTokens.size.touchTarget }, monthLabel: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: DesignTokens.size.touchTarget, minWidth: 0 }, monthText: { fontSize: 18, fontWeight: '800', lineHeight: 23 }, calendarSurface: { borderRadius: DesignTokens.radius.lg, borderWidth: StyleSheet.hairlineWidth, marginHorizontal: DesignTokens.layout.screenPadding, marginTop: DesignTokens.spacing.sm, overflow: 'hidden', paddingHorizontal: 4, paddingVertical: 4 }, pressed: { opacity: 0.62 } });
+const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.sm, paddingBottom: 132 }, banner: { paddingHorizontal: DesignTokens.layout.screenPadding }, toolbar: { alignItems: 'center', flexDirection: 'row', paddingHorizontal: DesignTokens.layout.screenPadding }, monthControls: { alignItems: 'center', flex: 1, flexDirection: 'row', minWidth: 0 }, toolbarButton: { alignItems: 'center', height: DesignTokens.size.touchTarget, justifyContent: 'center', width: DesignTokens.size.touchTarget }, monthLabel: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: DesignTokens.size.touchTarget, minWidth: 0 }, monthText: { fontSize: 18, fontWeight: '800', lineHeight: 23 }, calendarSurface: { borderRadius: DesignTokens.radius.lg, borderWidth: StyleSheet.hairlineWidth, marginHorizontal: DesignTokens.layout.screenPadding, marginTop: DesignTokens.spacing.sm, overflow: 'hidden', paddingHorizontal: 4, paddingVertical: 4 }, pressed: { opacity: 0.62 } });

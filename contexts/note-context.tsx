@@ -1,4 +1,4 @@
-import { createContext, type PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, type PropsWithChildren, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts/auth-context';
 import { ApiClientError, getApiErrorMessage } from '@/lib/api/api-client';
@@ -12,9 +12,10 @@ const NoteContext = createContext<NoteContextValue | null>(null);
 export function NoteProvider({ children }: PropsWithChildren) {
   const { accessToken, logout } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]); const [listStatus, setListStatus] = useState<ListStatus>('idle'); const [listError, setListError] = useState<string | null>(null);
+  const listRequestId = useRef(0);
   const runAuthenticated = useCallback(async <T,>(request: (token: string) => Promise<T>) => { if (!accessToken) throw new Error('Your session is unavailable. Please sign in again.'); try { return await request(accessToken); } catch (error) { if (error instanceof ApiClientError && error.status === 401) await logout(); throw error; } }, [accessToken, logout]);
   const upsert = useCallback((note: Note) => setNotes((current) => current.some((item) => item.id === note.id) ? current.map((item) => item.id === note.id ? note : item) : [note, ...current]), []);
-  const loadNotes = useCallback(async (filters: NoteFilters = {}) => { setListStatus('loading'); setListError(null); try { const loaded = (await runAuthenticated((token) => getNotes(token, filters))).data.notes; setNotes(loaded); setListStatus('success'); return loaded; } catch (error) { setListError(getApiErrorMessage(error)); setListStatus('error'); throw error; } }, [runAuthenticated]);
+  const loadNotes = useCallback(async (filters: NoteFilters = {}) => { const requestId = ++listRequestId.current; setListStatus('loading'); setListError(null); try { const loaded = (await runAuthenticated((token) => getNotes(token, filters))).data.notes; if (requestId !== listRequestId.current) return loaded; setNotes(loaded); setListStatus('success'); return loaded; } catch (error) { if (requestId !== listRequestId.current) return []; setListError(getApiErrorMessage(error)); setListStatus('error'); throw error; } }, [runAuthenticated]);
   const loadNote = useCallback(async (id: string) => { const note = (await runAuthenticated((token) => getNoteRequest(token, id))).data.note; upsert(note); return note; }, [runAuthenticated, upsert]);
   const createNote = useCallback(async (request: CreateNoteRequest) => { const note = (await runAuthenticated((token) => createNoteRequest(token, request))).data.note; upsert(note); return note; }, [runAuthenticated, upsert]);
   const updateNote = useCallback(async (id: string, request: UpdateNoteRequest) => { const note = (await runAuthenticated((token) => updateNoteRequest(token, id, request))).data.note; upsert(note); return note; }, [runAuthenticated, upsert]);
