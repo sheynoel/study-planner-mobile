@@ -21,6 +21,15 @@ export default function AddCourseScreen() {
   const { createCourse } = useCourses();
   const { createSchedule } = useClassSchedules();
 
+  function closeCourseCreation() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(courseRoutes.list);
+  }
+
   async function handleCreate(values: CourseFormValues, schedules: ClassScheduleFormValues[]) {
     const result = await createCourseWithSchedules(
       () => createCourse(toCreateCourseRequest(values)),
@@ -41,7 +50,7 @@ export default function AddCourseScreen() {
         <CourseForm
           initialValues={EMPTY_COURSE_FORM}
           loadingLabel="Creating course..."
-          modalHeader={{ actionLabel: 'Create', onCancel: () => router.back(), title: 'New Course' }}
+          modalHeader={{ actionLabel: 'Create', onCancel: closeCourseCreation, title: 'New Course' }}
           onSubmit={handleCreate}
           submitLabel="Create course"
           withSchedules
