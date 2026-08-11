@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -30,13 +30,17 @@ export function CalendarEventForm({
   courses,
   initialValues,
   loadingLabel,
+  onDirtyChange,
   onSubmit,
+  onSubmittingChange,
   submitLabel,
 }: {
   courses: Course[];
   initialValues: CalendarEventFormValues;
   loadingLabel: string;
+  onDirtyChange?: (dirty: boolean) => void;
   onSubmit: (values: CalendarEventFormValues) => Promise<void>;
+  onSubmittingChange?: (submitting: boolean) => void;
   submitLabel: string;
 }) {
   const { colors } = useAppearance();
@@ -44,6 +48,7 @@ export function CalendarEventForm({
   const [errors, setErrors] = useState<CalendarEventFormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  useEffect(() => onDirtyChange?.(JSON.stringify(values) !== JSON.stringify(initialValues)), [initialValues, onDirtyChange, values]);
 
   function updateField<Field extends CalendarEventFormField>(field: Field, value: CalendarEventFormValues[Field]) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -60,9 +65,10 @@ export function CalendarEventForm({
     }
     setApiError(null);
     setIsSubmitting(true);
+    onSubmittingChange?.(true);
     try { await onSubmit(values); }
     catch (error) { setApiError(getApiErrorMessage(error)); }
-    finally { setIsSubmitting(false); }
+    finally { setIsSubmitting(false); onSubmittingChange?.(false); }
   }
 
   return (

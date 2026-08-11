@@ -1,32 +1,44 @@
+import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 
-import { AppHeader } from '@/components/app-header';
 import { FileUploadForm } from '@/components/files/file-upload-form';
-import { ThemedView } from '@/components/themed-view';
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet';
 import { useCourses } from '@/contexts/course-context';
 import { useFiles } from '@/contexts/file-context';
 import type { UploadFileRequest } from '@/lib/api/file.types';
 import { fileRoutes } from '@/lib/files/routes';
 
 export default function UploadFileScreen() {
-  const params = useLocalSearchParams<{ courseId?: string | string[]; library?: string | string[] }>();
-  const courseId = Array.isArray(params.courseId) ? params.courseId[0] : params.courseId;
-  const library = Array.isArray(params.library) ? params.library[0] : params.library;
+  const params = useLocalSearchParams<{ autoPick?: string | string[]; courseId?: string | string[]; library?: string | string[]; returnOnSuccess?: string | string[] }>();
+  const courseId = first(params.courseId);
+  const library = first(params.library);
+  const autoPick = first(params.autoPick) === '1';
+  const returnOnSuccess = first(params.returnOnSuccess) === '1';
+  const navigation = useNavigation();
   const { courses, loadCourses } = useCourses();
   const { uploadFile } = useFiles();
+  const [dirty, setDirty] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const allowClose = useRef(false);
   useEffect(() => { void loadCourses().catch(() => undefined); }, [loadCourses]);
+  usePreventRemove(dirty && !allowClose.current, ({ data }) => { Alert.alert('Discard this upload?', 'The selected material and metadata will be cleared.', [{ text: 'Keep editing', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(data.action) }]); });
+  const close = useCallback(() => { if (!submitting) router.back(); }, [submitting]);
+
   async function submit(request: UploadFileRequest) {
     await uploadFile(request);
+    allowClose.current = true;
+    setDirty(false);
+    if (returnOnSuccess) { router.back(); return; }
     if (courseId || library === 'personal') {
       router.replace(request.courseId ? fileRoutes.forCourse(request.courseId) : fileRoutes.personal);
       return;
     }
     router.replace(fileRoutes.list);
   }
-  return <ThemedView style={styles.screen}><SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}><AppHeader onBack={() => router.back()} subtitle="PDF, Office documents, text, and images" title="Upload file" /><FileUploadForm courses={courses} initialCourseId={courseId} onSubmit={submit} /></SafeAreaView></ThemedView>;
+
+  return <AppBottomSheet expandable expandedSnap={0.96} initialSnap={0.6} modal={false} onClose={close} title="Add Material"><FileUploadForm autoPick={autoPick} courses={courses} initialCourseId={courseId} lockCourse={Boolean(courseId)} onDirtyChange={setDirty} onSubmit={submit} onSubmittingChange={setSubmitting} /></AppBottomSheet>;
 }
 
-const styles = StyleSheet.create({ screen: { flex: 1 }, safeArea: { flex: 1 } });
+function first(value?: string | string[]): string | undefined { return Array.isArray(value) ? value[0] : value; }

@@ -11,6 +11,9 @@ export const fileRoutes = {
   uploadForCourse(courseId: string): Href {
     return { pathname: '/files/upload', params: { courseId } } as unknown as Href;
   },
+  uploadFromCourseDetails(courseId: string): Href {
+    return { pathname: '/files/upload', params: { autoPick: '1', courseId, returnOnSuccess: '1' } } as unknown as Href;
+  },
   details(id: string): Href {
     return { pathname: '/files/[id]', params: { id } } as unknown as Href;
   },

@@ -31,7 +31,9 @@ The Add Course route is presented as a full-screen modal with a sticky Cancel/Ne
 
 All routes remain inside the authenticated Expo Router group. Courses are available from the five-item bottom navigation, while a missing or expired token is handled through the existing authentication guard and session cleanup.
 
-Course Details requests course-filtered Tasks, Calendar Events, Notes, Class Schedules, and recent Files. The Tasks filter sheet always retains the current course scope. Add Task, Add Note, and Add Event preselect the current course. The combined Events & Notes presentation does not merge their models or endpoints. Full Materials and the existing schedule routes retain the course UUID as their local scope. The redundant Course Calendar shortcut was removed from this screen; the global Calendar route and existing deep links remain intact.
+Course Details requests course-filtered Tasks, Calendar Events, Notes, Class Schedules, and recent Files. Its section-level Add buttons are replaced by one Course-scoped floating menu: Task, Event & Note, and Materials. Event & Note swaps the same tiny popup to Event and Note choices. Task, Event, Note, and Materials route helpers preselect the real Course UUID. Materials automatically opens the existing picker, uses a compact metadata sheet with locked Course context, uploads through the unchanged File provider, and returns so the Course preview refreshes. The Tasks filter and Materials navigation actions remain separate from creation.
+
+The Courses header `+` directly opens Add Course and never shows the global Task/Event/Note menu.
 
 Delete Course is not presented during normal Course Details browsing. Edit Course contains a clearly labeled Danger Zone after the save action. It reuses the existing confirmation dialog, authenticated `DELETE /courses/:id` request, backend relationship behavior, and successful navigation back to the Courses list.
 

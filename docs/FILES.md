@@ -34,7 +34,7 @@ Material categories are presentation filters: PDF is `pdf`; Slides is `ppt`/`ppt
 
 ## Upload behavior
 
-Expo DocumentPicker is configured with the supported MIME types, `multiple: false`, `copyToCacheDirectory: true`, and `base64: false`. Cancellation returns quietly. The selected asset retains its URI, original name, MIME type, and reported size.
+Expo DocumentPicker is configured with the supported MIME types, `multiple: false`, `copyToCacheDirectory: true`, and `base64: false`. Cancellation returns quietly. Upload metadata now uses the shared expandable sheet. Course Details > Materials opens the picker automatically after the popup closes, locks the current Course in the compact metadata form, and returns to Course Details after success so focus refresh reloads its preview. Library uploads use the same sheet and existing selectable Course behavior.
 
 The API service creates `FormData` containing the URI-backed native file part and optional text fields. The shared API client sends that body without assigning `Content-Type`, allowing the native request implementation to create the correct multipart boundary. The file is never converted to Base64 or read completely into JavaScript memory.
 

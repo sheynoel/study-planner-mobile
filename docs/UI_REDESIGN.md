@@ -94,7 +94,7 @@ React Native Paper is not currently installed. The project already has Expo Rout
 ## Implemented coverage
 
 - The five-tab workspace uses Home, Calendar, Tasks, Courses, and Settings with one accessible global quick-add sheet. File routes remain available contextually.
-- Home is a compact day dashboard with independently collapsible Classes Today, full-month Calendar, and continuous Tasks sections.
+- Home is a compact mixed-widget day surface with a Today hero, seven-day strip, paired context cards, horizontal Classes Today carousel, and bounded important Tasks list. Full month browsing remains in Calendar.
 - Tasks use a compact month summary, weekly selector, course tabs, filter/sort sheets, and one continuous academic card list while retaining completion and supported backend filters.
 - Courses use a responsive fixed-height two-column folder grid plus a compact Personal Library utility tile; Course Details exposes Tasks, combined Events & Notes, schedule summary, and recent Materials directly without permanent workspace tabs.
 - Calendar keeps the existing month/date logic and combines a collapsible month, week strip, legend, and selected-day timeline.

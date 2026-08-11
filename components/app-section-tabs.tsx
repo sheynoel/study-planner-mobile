@@ -23,7 +23,7 @@ const TABS: readonly { icon: keyof typeof Ionicons.glyphMap; label: string; sect
 export function AppSectionTabs({ active, selectedDate }: { active: Section; selectedDate?: string }) {
   const insets = useSafeAreaInsets();
   const { colors } = useAppearance();
-  return <><View accessibilityRole="tablist" style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.outline, paddingBottom: Math.max(insets.bottom, 8) }]}>{TABS.map((tab) => <SectionTab active={active === tab.section} icon={tab.icon} key={tab.section} label={tab.label} onPress={tab.onPress} />)}</View><FloatingQuickAdd calendarDate={active === 'calendar' ? selectedDate : undefined} calendarOnly={active === 'calendar'} /></>;
+  return <><View accessibilityRole="tablist" style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.outline, paddingBottom: Math.max(insets.bottom, 8) }]}>{TABS.map((tab) => <SectionTab active={active === tab.section} icon={tab.icon} key={tab.section} label={tab.label} onPress={tab.onPress} />)}</View>{active === 'home' || active === 'calendar' ? <FloatingQuickAdd selectedDate={active === 'calendar' ? selectedDate : undefined} /> : null}</>;
 }
 
 function SectionTab({ active, icon, label, onPress }: { active: boolean; icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {

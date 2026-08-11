@@ -78,7 +78,7 @@ export default function TaskListScreen() {
   };
 
   return <AppScreen footer={<AppSectionTabs active="tasks" />}>
-    <AppHeader compactTitle onRightAction={() => router.push(taskRoutes.add)} rightActionLabel="Add" title="Tasks" />
+    <AppHeader compactTitle onRightAction={() => router.push(taskRoutes.add)} rightActionIcon="add" rightActionLabel="Add Task" title="Tasks" />
     {initialLoading ? <LoadingSkeleton rows={5} /> : null}
     {!initialLoading && error && tasks.length === 0 ? <ErrorState message={error} onRetry={() => void refresh().catch(() => undefined)} /> : null}
     {!initialLoading && !(error && tasks.length === 0) ? <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void onRefresh()} refreshing={refreshing} tintColor={colors.primary} />}>

@@ -1,11 +1,10 @@
+import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo } from 'react';
-import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 
-import { AppHeader } from '@/components/app-header';
 import { CalendarEventForm } from '@/components/calendar/calendar-event-form';
-import { ThemedView } from '@/components/themed-view';
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet';
 import { ErrorState, LoadingState } from '@/components/ui/async-state';
 import { useCalendar } from '@/contexts/calendar-context';
 import { useCourses } from '@/contexts/course-context';
@@ -17,23 +16,29 @@ export default function AddCalendarEventScreen() {
   const params = useLocalSearchParams<{ courseId?: string | string[]; date?: string | string[] }>();
   const requestedDate = Array.isArray(params.date) ? params.date[0] : params.date;
   const courseId = Array.isArray(params.courseId) ? params.courseId[0] : params.courseId;
+  const navigation = useNavigation();
   const { createEvent } = useCalendar();
   const { courses, listError, listStatus, loadCourses } = useCourses();
+  const [dirty, setDirty] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const allowClose = useRef(false);
   const refreshCourses = useCallback(() => loadCourses(), [loadCourses]);
   const initialValues = useMemo(() => ({ ...createEmptyCalendarEventForm(requestedDate ? parseLocalDate(requestedDate) ?? new Date() : new Date()), courseId: courseId ?? null }), [courseId, requestedDate]);
 
   useEffect(() => { void refreshCourses().catch(() => undefined); }, [refreshCourses]);
+  usePreventRemove(dirty && !allowClose.current, ({ data }) => { Alert.alert('Discard this event?', 'Your unsaved event will be lost.', [{ text: 'Keep editing', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(data.action) }]); });
+  const close = useCallback(() => { if (!submitting) router.back(); }, [submitting]);
 
   async function handleCreate(values: CalendarEventFormValues) {
     const event = await createEvent(toCreateCalendarEventRequest(values));
+    allowClose.current = true;
+    setDirty(false);
     router.replace(calendarRoutes.details(event.id));
   }
 
-  return <ThemedView style={styles.screen}><SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}><AppHeader onBack={() => router.back()} subtitle="Create a personal or course-related event." title="Add event" />
+  return <AppBottomSheet expandable expandedSnap={0.96} initialSnap={0.76} modal={false} onClose={close} title="Add Event">
     {listStatus === 'idle' || listStatus === 'loading' ? <LoadingState label="Loading courses..." /> : null}
     {listStatus === 'error' ? <ErrorState message={listError ?? 'Courses could not be loaded.'} onRetry={() => void refreshCourses().catch(() => undefined)} /> : null}
-    {listStatus === 'success' ? <CalendarEventForm courses={courses} initialValues={initialValues} loadingLabel="Creating event..." onSubmit={handleCreate} submitLabel="Create event" /> : null}
-  </SafeAreaView></ThemedView>;
+    {listStatus === 'success' ? <CalendarEventForm courses={courses} initialValues={initialValues} loadingLabel="Creating event..." onDirtyChange={setDirty} onSubmit={handleCreate} onSubmittingChange={setSubmitting} submitLabel="Add Event" /> : null}
+  </AppBottomSheet>;
 }
-
-const styles = StyleSheet.create({ screen: { flex: 1 }, safeArea: { flex: 1 } });

@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
   section: { gap: DesignTokens.spacing.sm },
   header: { alignItems: 'center', flexDirection: 'row', minHeight: DesignTokens.size.touchTarget },
   titleButton: { flex: 1, justifyContent: 'center', minHeight: DesignTokens.size.touchTarget },
-  title: { fontSize: 18, fontWeight: '700', lineHeight: 23 },
+  title: { fontSize: 16, fontWeight: '700', lineHeight: 21 },
   chevron: { alignItems: 'center', justifyContent: 'center', minHeight: DesignTokens.size.touchTarget, width: 36 },
   pressed: { opacity: 0.58 },
 });

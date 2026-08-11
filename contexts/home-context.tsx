@@ -1,6 +1,6 @@
 import { createContext, type PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
 
-export type HomeSection = 'classes' | 'calendar' | 'tasks';
+export type HomeSection = 'classes' | 'tasks';
 
 type HomeSectionState = Record<HomeSection, boolean>;
 
@@ -9,7 +9,7 @@ type HomeContextValue = {
   toggleSection: (section: HomeSection) => void;
 };
 
-const DEFAULT_EXPANDED: HomeSectionState = { classes: true, calendar: true, tasks: true };
+const DEFAULT_EXPANDED: HomeSectionState = { classes: true, tasks: true };
 const HomeContext = createContext<HomeContextValue | null>(null);
 
 export function HomeProvider({ children }: PropsWithChildren) {

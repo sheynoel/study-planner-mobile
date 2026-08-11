@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
@@ -30,16 +30,18 @@ import { noteRoutes } from '@/lib/notes/routes';
 import { taskRoutes } from '@/lib/tasks/routes';
 
 export default function CalendarScreen() {
-  const params = useLocalSearchParams<{ courseId?: string | string[] }>();
+  const params = useLocalSearchParams<{ courseId?: string | string[]; date?: string | string[] }>();
   const courseId = Array.isArray(params.courseId) ? params.courseId[0] : params.courseId;
+  const requestedDate = Array.isArray(params.date) ? params.date[0] : params.date;
+  const initialDate = useMemo(() => requestedDate && parseLocalDate(requestedDate) ? requestedDate : toLocalDateKey(new Date()), [requestedDate]);
   const { width } = useWindowDimensions();
   const { colors } = useAppearance();
   const { items, listError, listStatus, loadRange } = useCalendar();
   const { courses } = useCourses();
   const { loadNotes, notes } = useNotes();
   const { preferences, setPreferences } = useCalendarDisplayPreferences();
-  const [month, setMonth] = useState(() => new Date());
-  const [selectedDate, setSelectedDate] = useState(() => toLocalDateKey(new Date()));
+  const [month, setMonth] = useState(() => parseLocalDate(initialDate) ?? new Date());
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [displayVisible, setDisplayVisible] = useState(false);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -49,6 +51,12 @@ export default function CalendarScreen() {
   const selectedItems = useMemo(() => itemsForDate(visibleItems, selectedDate), [selectedDate, visibleItems]);
   const refresh = useCallback(async () => { await Promise.all([loadRange(range), loadNotes()]); }, [loadNotes, loadRange, range]);
   useFocusEffect(useCallback(() => { void refresh().catch(() => undefined); }, [refresh]));
+  useEffect(() => {
+    const parsed = requestedDate ? parseLocalDate(requestedDate) : null;
+    if (!requestedDate || !parsed) return;
+    setMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+    setSelectedDate(requestedDate);
+  }, [requestedDate]);
 
   function selectMonth(next: Date) { setMonth(next); setSelectedDate((current) => validDateInMonth(current, next)); }
   function changeMonth(amount: number) { selectMonth(addMonths(month, amount)); }

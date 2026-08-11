@@ -22,7 +22,9 @@ export default function AppLayout() {
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="courses/new" options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
                       <Stack.Screen name="tasks/new" options={{ animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false, presentation: 'transparentModal' }} />
+                      <Stack.Screen name="calendar/new" options={{ animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false, presentation: 'transparentModal' }} />
                       <Stack.Screen name="notes/new" options={{ animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false, presentation: 'transparentModal' }} />
+                      <Stack.Screen name="files/upload" options={{ animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false, presentation: 'transparentModal' }} />
                     </Stack>
                   </HomeProvider>
                 </NoteProvider>

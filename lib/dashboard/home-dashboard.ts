@@ -1,20 +1,31 @@
 import type { CalendarItem } from '@/lib/api/calendar-event.types';
-import type { Task, TaskPriority, TaskStatus } from '@/lib/api/task.types';
+import type { Course } from '@/lib/api/course.types';
+import type { Task, TaskPriority } from '@/lib/api/task.types';
 import type { Note } from '@/lib/api/note.types';
 
-export type HomeTaskTime = 'any' | 'today' | 'this_week' | 'this_month';
-export type HomeTaskCourse = string | 'personal' | undefined;
+export type ClassTimeState = 'past' | 'current' | 'upcoming';
 
-export type HomeTaskFilters = {
-  status?: TaskStatus;
-  time: HomeTaskTime;
-  courseId?: HomeTaskCourse;
-  priority?: TaskPriority;
+export type HomeReminder = {
+  id: string;
+  sourceId: string;
+  sourceType: 'event' | 'note';
+  title: string;
+  preview: string | null;
+  courseId: string | null;
+  courseLabel: string;
+  color: string | null;
+  at: string | null;
+  isAllDay: boolean;
+  isOverdue: boolean;
+  isPinned: boolean;
 };
 
-export const DEFAULT_HOME_TASK_FILTERS: HomeTaskFilters = { time: 'any' };
-
-export type ClassTimeState = 'past' | 'current' | 'upcoming';
+export type HomeTodayHero = {
+  remainingClasses: number;
+  tasksDueToday: number;
+  nextItem: CalendarItem | null;
+  nextState: 'current' | 'upcoming' | null;
+};
 
 export function getTodayClasses(items: CalendarItem[], now = new Date()): CalendarItem[] {
   const today = toLocalDateKey(now);
@@ -35,48 +46,135 @@ export function getClassNotes(notes: Note[], courseId: string | null, now = new 
   if (!courseId) return [];
   const today = toLocalDateKey(now);
   return notes
-    .filter((note) => note.courseId === courseId && note.relevantAt !== null && toLocalDateKey(note.relevantAt) === today)
-    .sort((left, right) => Date.parse(left.relevantAt!) - Date.parse(right.relevantAt!) || left.title.localeCompare(right.title));
+    .filter((note) => note.courseId === courseId && [note.relevantAt, note.reminderAt].some((value) => value !== null && toLocalDateKey(value) === today))
+    .sort((left, right) => Date.parse(left.reminderAt ?? left.relevantAt!) - Date.parse(right.reminderAt ?? right.relevantAt!) || left.title.localeCompare(right.title));
 }
 
-export function filterHomeTasks(tasks: Task[], filters: HomeTaskFilters, now = new Date()): Task[] {
-  const today = startOfDay(now);
-  const tomorrow = addDays(today, 1);
-  const weekEnd = addDays(today, 7);
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-
-  return tasks.filter((task) => {
-    if (filters.status ? task.status !== filters.status : task.status === 'COMPLETED') return false;
-    if (filters.priority && task.priority !== filters.priority) return false;
-    if (filters.courseId === 'personal' && task.courseId !== null) return false;
-    if (filters.courseId && filters.courseId !== 'personal' && task.courseId !== filters.courseId) return false;
-    if (filters.time === 'any') return true;
-    if (!task.dueAt) return false;
-    const due = new Date(task.dueAt);
-    if (filters.time === 'today') return due >= today && due < tomorrow;
-    if (filters.time === 'this_week') return due >= today && due < weekEnd;
-    return due >= monthStart && due < monthEnd;
-  }).sort(compareHomeTasks);
+export function getHomeReminders(
+  items: CalendarItem[],
+  notes: Note[],
+  courses: Course[],
+  excludedNoteIds: Set<string> = new Set(),
+  now = new Date(),
+  limit = 5,
+): HomeReminder[] {
+  const today = toLocalDateKey(now);
+  const startToday = startOfDay(now);
+  const startTomorrow = addDays(startToday, 1);
+  const recentPinnedCutoff = addDays(startToday, -7).getTime();
+  const courseById = new Map(courses.map((course) => [course.id, course]));
+  const events: HomeReminder[] = items
+    .filter((item) => item.sourceType === 'event' && item.date === today)
+    .map((item) => ({
+      id: item.id,
+      sourceId: item.sourceId,
+      sourceType: 'event',
+      title: item.title,
+      preview: item.location,
+      courseId: item.courseId,
+      courseLabel: item.courseCode || item.courseName || 'Personal',
+      color: item.color,
+      at: item.startAt,
+      isAllDay: item.isAllDay,
+      isOverdue: false,
+      isPinned: false,
+    }));
+  const noteReminders: HomeReminder[] = notes.flatMap((note) => {
+    if (excludedNoteIds.has(note.id)) return [];
+    const reminderTime = note.reminderAt ? Date.parse(note.reminderAt) : null;
+    const relevantToday = note.relevantAt ? toLocalDateKey(note.relevantAt) === today : false;
+    const reminderDue = reminderTime !== null && reminderTime < startTomorrow.getTime();
+    const recentUndatedPin = note.isPinned && !note.relevantAt && !note.reminderAt && Date.parse(note.updatedAt) >= recentPinnedCutoff;
+    if (!relevantToday && !reminderDue && !recentUndatedPin) return [];
+    const course = note.courseId ? courseById.get(note.courseId) : undefined;
+    const at = reminderDue ? note.reminderAt : relevantToday ? note.relevantAt : null;
+    return [{
+      id: `note:${note.id}:${at ? toLocalDateKey(at) : 'pinned'}`,
+      sourceId: note.id,
+      sourceType: 'note' as const,
+      title: note.title,
+      preview: note.content?.trim() && note.content.trim() !== note.title.trim() ? note.content.trim() : null,
+      courseId: note.courseId,
+      courseLabel: course?.code?.trim() || course?.name || 'Personal',
+      color: course?.color ?? null,
+      at,
+      isAllDay: false,
+      isOverdue: reminderTime !== null && reminderTime < startToday.getTime(),
+      isPinned: note.isPinned,
+    }];
+  });
+  return [...events, ...noteReminders].sort(compareHomeReminders).slice(0, limit);
 }
 
-export function activeHomeTaskFilterCount(filters: HomeTaskFilters): number {
-  return Number(Boolean(filters.status)) + Number(filters.time !== 'any') + Number(Boolean(filters.courseId)) + Number(Boolean(filters.priority));
+export function getImportantHomeTasks(tasks: Task[], now = new Date(), limit = 5): Task[] {
+  return tasks
+    .filter((task) => task.status !== 'COMPLETED')
+    .sort((left, right) => compareImportantTasks(left, right, now))
+    .slice(0, limit);
 }
 
-export function countSelectedDateItems(items: CalendarItem[], date: string) {
-  const selected = items.filter((item) => item.date === date);
+export function getHomeTodayHero(items: CalendarItem[], tasks: Task[], now = new Date()): HomeTodayHero {
+  const today = toLocalDateKey(now);
+  const todayClasses = getTodayClasses(items, now);
+  const remainingClasses = todayClasses.filter((item) => Date.parse(item.endAt ?? item.startAt) >= now.getTime());
+  const activeTasksDueToday = tasks.filter((task) => task.status !== 'COMPLETED' && task.dueAt !== null && toLocalDateKey(task.dueAt) === today);
+  const currentClass = remainingClasses.find((item) => Date.parse(item.startAt) <= now.getTime()) ?? null;
+  const upcomingClass = remainingClasses.find((item) => Date.parse(item.startAt) > now.getTime()) ?? null;
+  const upcomingEvent = items
+    .filter((item) => item.sourceType === 'event' && item.date === today && (item.isAllDay || Date.parse(item.endAt ?? item.startAt) >= now.getTime()))
+    .sort(compareCalendarTime)[0] ?? null;
+  const nextItem = currentClass ?? upcomingClass ?? upcomingEvent;
   return {
-    classes: selected.filter((item) => item.sourceType === 'class_schedule').length,
-    tasks: selected.filter((item) => item.sourceType === 'task').length,
-    events: selected.filter((item) => item.sourceType === 'event').length,
+    remainingClasses: remainingClasses.length,
+    tasksDueToday: activeTasksDueToday.length,
+    nextItem,
+    nextState: currentClass ? 'current' : nextItem ? 'upcoming' : null,
   };
 }
 
-function compareHomeTasks(left: Task, right: Task): number {
+export function getNextRemainingClass(items: CalendarItem[], now = new Date()): CalendarItem | null {
+  return getTodayClasses(items, now).find((item) => Date.parse(item.endAt ?? item.startAt) >= now.getTime()) ?? null;
+}
+
+export function getNextUpcomingEvent(items: CalendarItem[], now = new Date()): CalendarItem | null {
+  return items
+    .filter((item) => item.sourceType === 'event' && (item.date > toLocalDateKey(now) || item.isAllDay || Date.parse(item.endAt ?? item.startAt) >= now.getTime()))
+    .sort((left, right) => left.date.localeCompare(right.date) || compareCalendarTime(left, right))[0] ?? null;
+}
+
+function compareHomeReminders(left: HomeReminder, right: HomeReminder): number {
+  if (left.isOverdue !== right.isOverdue) return left.isOverdue ? -1 : 1;
+  if (left.isAllDay !== right.isAllDay) return left.isAllDay ? -1 : 1;
+  const leftTime = left.at ? Date.parse(left.at) : Number.MAX_SAFE_INTEGER;
+  const rightTime = right.at ? Date.parse(right.at) : Number.MAX_SAFE_INTEGER;
+  return leftTime - rightTime || left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
+}
+
+function compareCalendarTime(left: CalendarItem, right: CalendarItem): number {
+  if (left.isAllDay !== right.isAllDay) return left.isAllDay ? -1 : 1;
+  return Date.parse(left.startAt) - Date.parse(right.startAt) || left.id.localeCompare(right.id);
+}
+
+function compareImportantTasks(left: Task, right: Task, now: Date): number {
+  const leftBucket = taskUrgencyBucket(left, now);
+  const rightBucket = taskUrgencyBucket(right, now);
+  if (leftBucket !== rightBucket) return leftBucket - rightBucket;
   const leftDue = left.dueAt ? Date.parse(left.dueAt) : Number.MAX_SAFE_INTEGER;
   const rightDue = right.dueAt ? Date.parse(right.dueAt) : Number.MAX_SAFE_INTEGER;
-  return leftDue - rightDue || left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
+  const priorityRank: Record<TaskPriority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+  return leftDue - rightDue || priorityRank[left.priority] - priorityRank[right.priority] || left.title.localeCompare(right.title) || left.id.localeCompare(right.id);
+}
+
+function taskUrgencyBucket(task: Task, now: Date): number {
+  if (!task.dueAt) return 4;
+  const due = new Date(task.dueAt);
+  const today = startOfDay(now);
+  const tomorrow = addDays(today, 1);
+  const soon = addDays(today, 8);
+  if (due < today) return 0;
+  if (due < tomorrow) return 1;
+  if (due < soon) return 2;
+  return 3;
 }
 
 function startOfDay(value: Date): Date {

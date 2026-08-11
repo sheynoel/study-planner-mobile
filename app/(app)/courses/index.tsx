@@ -26,7 +26,7 @@ export default function CourseListScreen() {
   useFocusEffect(useCallback(() => { void refresh().catch(() => undefined); }, [refresh]));
 
   return <AppScreen footer={<AppSectionTabs active="courses" />}>
-    <AppHeader onRightAction={() => router.push(courseRoutes.add)} rightActionLabel="Add" title="Courses" />
+    <AppHeader onRightAction={() => router.push(courseRoutes.add)} rightActionIcon="add" rightActionLabel="Add Course" title="Courses" />
     {listStatus === 'idle' || listStatus === 'loading' ? <LoadingSkeleton rows={4} /> : null}
     {listStatus === 'error' ? <ErrorState message={listError ?? 'Your courses could not be loaded.'} onRetry={() => void refresh().catch(() => undefined)} /> : null}
     {listStatus === 'success' ? <ScrollView contentContainerStyle={styles.content}>

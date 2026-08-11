@@ -120,7 +120,7 @@ The current backend does not configure CORS, so browser authentication requests 
 
 - The protected Task list uses a compact weekly selector, authenticated course tabs, search, and one continuous list of neutral academic task cards with relative deadline labels.
 - A filter sheet composes priority, status, and due selections while course UUID and Personal filtering remain in horizontal tabs. Search, the local This Week projection, and five local sort options are layered over supported backend filters without adding API parameters.
-- Add Task uses the shared adaptive sheet, calendar date picker, and 12-hour native time picker; edit retains the complete validated task form and existing request mapper.
+- The Tasks header `+` directly opens Add Task; it does not show the global chooser. Add Task uses the shared adaptive sheet, calendar date picker, and 12-hour native time picker; edit retains the complete validated task form and existing request mapper.
 - A task may use “No course.” Due values entered in local device time are converted to ISO UTC; a date without a time uses 23:59 local time.
 - Completion and deletion update displayed state after the server confirms success, and Course data supplies names and codes for selectors and task cards.
 - Every Task request uses the restored JWT through the protected Task provider; HTTP `401` clears the local session.
@@ -134,7 +134,7 @@ The current backend does not configure CORS, so browser authentication requests 
 - Local date/time inputs are converted to ISO UTC timestamps without fixed offsets. API timestamps are displayed in the device timezone.
 - The calendar refreshes on visible-month changes and whenever it regains focus after event creation, editing, or deletion.
 - Tapping the month/year opens a direct month picker. Calendar-only visibility preferences for source types, density, and individual courses persist using the existing SecureStore/native and localStorage/web settings pattern; they do not alter Home or backend records.
-- Calendar's top-right overflow contains Display, Jump to month, and Today so the month row remains dedicated to navigation. Calendar Quick Add contains only Task, Event, and Note and forwards the current in-memory selected date into the existing creation forms.
+- Calendar's top-right overflow contains Display, Jump to month, and Today so the month row remains dedicated to navigation. Its `+` opens a tiny anchored Task/Event/Note popup and forwards the selected date into the existing expandable creation sheets.
 
 ### Class Schedule Management flow
 
@@ -148,7 +148,7 @@ The current backend does not configure CORS, so browser authentication requests 
 
 - Settings > File Library lists all personal and course-related files. Course Details previews recent course files and opens the compact course-scoped Materials library, while Courses > Personal Library shows only files with `courseId: null`.
 - Shared material filters provide All, PDF, Slides, Documents, and Images categories. Slides maps to PPT/PPTX, Documents to DOC/DOCX/TXT, and Images to the supported image extensions.
-- Upload uses Expo DocumentPicker with `copyToCacheDirectory`, keeps the original URI/name/MIME type, and sends native `multipart/form-data` without manually setting a boundary or reading Base64 into JavaScript.
+- Upload uses a compact expandable sheet. Course Details > Materials opens Expo DocumentPicker automatically, locks the current Course, then returns after the existing multipart upload so the preview refreshes. The picker retains URI/name/MIME metadata and never reads Base64 into JavaScript.
 - The picker and form enforce the documented 25 MiB default before upload; backend validation messages remain authoritative.
 - Details support authenticated download into Expo's temporary cache, progress display, and opening the platform share sheet through Expo Sharing.
 - Downloaded files are explicit temporary transfers, not an offline cache or synchronization layer.
@@ -157,10 +157,12 @@ The current backend does not configure CORS, so browser authentication requests 
 ### Home Dashboard flow
 
 - `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Settings. File Library remains available from Settings and course workspaces.
-- Home is ordered as greeting/date, Classes Today, a compact full-month Calendar, and one continuous Tasks list. The three academic sections collapse independently and retain that state while navigating during the app session.
-- Today's recurring class occurrences are sorted by local start time, distinguish past/current/upcoming states, and may show up to two exact-course Notes whose `relevantAt` is today in local time.
-- The Home calendar reuses the existing monthly Calendar provider and normalized event, deadline, and class-occurrence data. Selected dates stay on Home and show compact activity counts.
-- Home tasks default to Assigned and In Progress, sort overdue and dated work before undated work, and use one bottom-sheet filter for status, time, course UUID/Personal, and priority. Completed tasks appear only when selected.
+- Home is composed as greeting/date, a compact Today hero, a seven-day activity strip, one or two responsive context widgets, a horizontal Classes Today carousel, and a four-item Tasks preview. Classes and Tasks can collapse independently during the app session.
+- Today's recurring class occurrences are sorted by local start time, distinguish past/current/upcoming states, and may show up to two exact-course Notes whose relevant or reminder date is today in local time.
+- Today remains selected on Home. Tapping another strip date opens Calendar with that date selected; month browsing and detailed agendas stay in Calendar.
+- The Today hero counts remaining classes and active tasks due today, then surfaces the current/next class or today's next Event. A single Don't Forget widget prioritizes a relevant Note/reminder, then falls back to an important Task or upcoming Event; matching class Notes remain inside their class card instead of being duplicated.
+- Classes use uniform Course-accented cards in a horizontal carousel. Home tasks exclude completed work and prioritize overdue, due-today, and due-soon deadlines before later or undated work. The shared Tasks row and completion mutation are reused; filtering and sorting stay on Tasks.
+- Home and Calendar use one tiny anchored Quick Add popup containing only Task, Event, and Note. The FAB morphs from `+` to `×`; outside taps, drag gestures, Android Back, navigation, option selection, and `×` dismiss it. Tasks and Courses retain direct context-specific Add actions, Settings has none, and Course Details has one Course-scoped Task/Event & Note/Materials popup.
 - Focus refreshes, pull-to-refresh, existing Task Details mutations, and section-scoped errors preserve the established data lifecycle.
 
 From this repository:

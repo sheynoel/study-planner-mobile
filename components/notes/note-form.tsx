@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { ErrorBanner } from '@/components/auth/auth-form';
@@ -13,21 +13,23 @@ import { getApiErrorMessage } from '@/lib/api/api-client';
 import type { Course } from '@/lib/api/course.types';
 import { type NoteFormErrors, type NoteFormField, type NoteFormValues, validateNoteForm } from '@/lib/notes/note-form';
 
-export function NoteForm({ courses, initialValues, loadingLabel, lockCourse = false, onDirtyChange, onSubmit, onSubmittingChange, submitLabel }: { courses: Course[]; initialValues: NoteFormValues; loadingLabel: string; lockCourse?: boolean; onDirtyChange?: (dirty: boolean) => void; onSubmit: (values: NoteFormValues) => Promise<void>; onSubmittingChange?: (submitting: boolean) => void; submitLabel: string }) {
+export function NoteForm({ autoFocusBody = false, courses, initialValues, loadingLabel, lockCourse = false, onDirtyChange, onSubmit, onSubmittingChange, submitLabel }: { autoFocusBody?: boolean; courses: Course[]; initialValues: NoteFormValues; loadingLabel: string; lockCourse?: boolean; onDirtyChange?: (dirty: boolean) => void; onSubmit: (values: NoteFormValues) => Promise<void>; onSubmittingChange?: (submitting: boolean) => void; submitLabel: string }) {
   const { colors } = useAppearance();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<NoteFormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const bodyRef = useRef<TextInput>(null);
   const selectedCourse = courses.find((course) => course.id === values.courseId);
   useEffect(() => onDirtyChange?.(JSON.stringify(values) !== JSON.stringify(initialValues)), [initialValues, onDirtyChange, values]);
+  useEffect(() => { if (!autoFocusBody) return; const timer = setTimeout(() => bodyRef.current?.focus(), DesignTokens.motion.normal); return () => clearTimeout(timer); }, [autoFocusBody]);
   function update<Field extends NoteFormField>(field: Field, value: NoteFormValues[Field]) { setValues((current) => ({ ...current, [field]: value })); setErrors((current) => ({ ...current, [field]: undefined })); setApiError(null); }
   async function submit() { if (submitting) return; const next = validateNoteForm(values); if (Object.keys(next).length) { setErrors(next); return; } setSubmitting(true); onSubmittingChange?.(true); setApiError(null); try { await onSubmit(values); } catch (error) { setApiError(getApiErrorMessage(error)); } finally { setSubmitting(false); onSubmittingChange?.(false); } }
 
   return <View style={styles.root}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
     <ErrorBanner message={apiError} />
     <View style={styles.field}><ThemedText style={styles.label}>Title <ThemedText style={{ color: colors.textMuted }}>(optional)</ThemedText></ThemedText><TextInput accessibilityLabel="Note title" onChangeText={(text) => update('title', text)} placeholder="Bring lab gown" placeholderTextColor={colors.textMuted} style={[styles.titleInput, { backgroundColor: colors.surface, borderColor: errors.title ? colors.danger : colors.border, color: colors.text }]} value={values.title} />{errors.title ? <FieldError message={errors.title} /> : null}</View>
-    <View style={styles.field}><ThemedText style={styles.label}>Note</ThemedText><TextInput accessibilityLabel="Note content" multiline onChangeText={(text) => update('content', text)} placeholder="Write a note…" placeholderTextColor={colors.textMuted} scrollEnabled={false} style={[styles.noteInput, { backgroundColor: colors.surface, borderColor: errors.content ? colors.danger : colors.border, color: colors.text }]} textAlignVertical="top" value={values.content} />{errors.content ? <FieldError message={errors.content} /> : null}</View>
+    <View style={styles.field}><ThemedText style={styles.label}>Note</ThemedText><TextInput accessibilityLabel="Note content" multiline onChangeText={(text) => update('content', text)} placeholder="Start writing…" placeholderTextColor={colors.textMuted} ref={bodyRef} scrollEnabled={false} style={[styles.noteInput, { backgroundColor: colors.surface, borderColor: errors.content ? colors.danger : colors.border, color: colors.text }]} textAlignVertical="top" value={values.content} />{errors.content ? <FieldError message={errors.content} /> : null}</View>
     {lockCourse ? <View style={[styles.lockedCourse, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}><View><ThemedText style={styles.label}>Course</ThemedText><ThemedText numberOfLines={1} style={[styles.courseName, { color: colors.textSecondary }]}>{selectedCourse?.code ?? selectedCourse?.name ?? 'Course'}</ThemedText></View></View> : <CourseSelectField courses={courses} onChange={(courseId) => update('courseId', courseId)} value={values.courseId} />}
     <DateTimeRow date={values.relevantDate} dateError={errors.relevantDate} dateLabel="Relevant date" onDate={(date) => { update('relevantDate', date); if (!date) update('relevantTime', ''); }} onTime={(time) => update('relevantTime', time)} time={values.relevantTime} timeError={errors.relevantTime} />
     <DateTimeRow date={values.reminderDate} dateError={errors.reminderDate} dateLabel="Reminder" onDate={(date) => { update('reminderDate', date); if (!date) update('reminderTime', ''); }} onTime={(time) => update('reminderTime', time)} time={values.reminderTime} timeError={errors.reminderTime} />

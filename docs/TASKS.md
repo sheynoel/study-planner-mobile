@@ -37,7 +37,7 @@ Supported `status`, `priority`, `courseId`, `today`, `upcoming`, and `overdue` v
 
 ## Add Task presentation
 
-`/tasks/new` is a transparent bottom sheet so the originating Tasks or Course screen remains visible behind a dim overlay. It opens at roughly 75% height, expands to 96% on upward drag or keyboard focus, and collapses before downward-drag dismissal. Backdrop, back-button, and drag dismissal all retain the unsaved-change guard. Add Task remains reachable in the fixed footer. Creation presents title, compact course selection, optional due date/time, priority, and optional details. Status is not requested and remains the existing `TODO`/Assigned default.
+`/tasks/new` is a transparent bottom sheet so the originating Tasks, Calendar, Home, or Course screen remains visible behind a dim overlay. It opens at roughly 75% height, expands to 96% on upward drag or keyboard focus, and retains its unsaved-change guard. The Tasks header `+` opens this route directly; only Home and Calendar use the Task/Event/Note chooser. Route helpers prefill Calendar date or Course UUID without changing the request mapper.
 
 ## Backend contract assumptions
 

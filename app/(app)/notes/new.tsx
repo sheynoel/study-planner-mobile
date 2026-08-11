@@ -35,7 +35,7 @@ export default function AddNoteScreen() {
   return <AppBottomSheet expandable expandedSnap={0.96} initialSnap={0.68} modal={false} onClose={close} title="Add Note">
     {listStatus === 'idle' || listStatus === 'loading' ? <View style={styles.loading}><ActivityIndicator color={colors.primary} /><ThemedText style={{ color: colors.textSecondary }}>Loading courses…</ThemedText></View> : null}
     {listStatus === 'error' ? <View style={styles.error}><ErrorBanner message={listError ?? 'Courses could not be loaded.'} /><Pressable onPress={() => void refresh().catch(() => undefined)} style={styles.retry}><ThemedText style={{ color: colors.primary, fontWeight: '700' }}>Retry</ThemedText></Pressable></View> : null}
-    {listStatus === 'success' ? <NoteForm courses={courses} initialValues={initialValues} loadingLabel="Saving…" lockCourse={Boolean(courseId)} onDirtyChange={setDirty} onSubmit={handleCreate} onSubmittingChange={setSubmitting} submitLabel="Save" /> : null}
+    {listStatus === 'success' ? <NoteForm autoFocusBody courses={courses} initialValues={initialValues} loadingLabel="Saving…" lockCourse={Boolean(courseId)} onDirtyChange={setDirty} onSubmit={handleCreate} onSubmittingChange={setSubmitting} submitLabel="Save" /> : null}
   </AppBottomSheet>;
 }
 
