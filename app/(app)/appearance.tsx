@@ -1,16 +1,19 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppearanceSection } from '@/components/settings/appearance-section';
 import { ThemedText } from '@/components/themed-text';
 import { AppScreen } from '@/components/ui/app-screen';
-import { BentoCard } from '@/components/ui/bento-card';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 
 export default function AppearanceScreen() {
   const { colors, themePack } = useAppearance();
-  return <AppScreen edges={['top', 'bottom']}><AppHeader onBack={() => router.back()} subtitle="Tune the workspace to the way you study." title="Appearance" /><ScrollView contentContainerStyle={styles.content}><BentoCard style={styles.preview} tone="accent"><ThemedText type="defaultSemiBold" style={{ color: colors.primary }}>LIVE PREVIEW</ThemedText><ThemedText type="title">{themePack.name}</ThemedText><ThemedText style={{ color: colors.textSecondary }}>{themePack.description}</ThemedText><BentoCard><ThemedText type="defaultSemiBold">Study block · 4:00 PM</ThemedText><ThemedText style={{ color: colors.textSecondary }}>Your cards, text, and accents update instantly.</ThemedText></BentoCard></BentoCard><AppearanceSection /></ScrollView></AppScreen>;
+  return <AppScreen edges={['top', 'bottom']}><AppHeader compactTitle onBack={() => router.back()} title="Appearance" /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <View style={styles.previewBlock}><ThemedText style={[styles.label, { color: colors.textSecondary }]}>THEME PREVIEW</ThemedText><View style={[styles.preview, { backgroundColor: colors.surfaceAccent, borderColor: colors.border }]}><View style={styles.previewText}><ThemedText numberOfLines={1} style={styles.previewTitle}>{themePack.name}</ThemedText><ThemedText numberOfLines={1} style={[styles.previewDescription, { color: colors.textSecondary }]}>Sample card and action</ThemedText></View><View style={[styles.sampleAction, { backgroundColor: colors.primary }]} /></View></View>
+    <AppearanceSection />
+  </ScrollView></AppScreen>;
 }
-const styles = StyleSheet.create({ content: { gap: DesignTokens.layout.sectionGap, padding: DesignTokens.layout.screenPadding, paddingBottom: 48 }, preview: { gap: DesignTokens.spacing.md } });
+
+const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.xl, padding: DesignTokens.layout.screenPadding, paddingBottom: 48 }, previewBlock: { gap: DesignTokens.spacing.sm }, label: { fontSize: 10, fontWeight: '800', letterSpacing: 1, lineHeight: 14 }, preview: { alignItems: 'center', borderRadius: DesignTokens.radius.lg, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: DesignTokens.spacing.md, minHeight: 72, padding: DesignTokens.spacing.md }, previewText: { flex: 1, minWidth: 0 }, previewTitle: { fontSize: 14, fontWeight: '800', lineHeight: 19 }, previewDescription: { fontSize: 11, lineHeight: 15 }, sampleAction: { borderRadius: DesignTokens.radius.pill, height: 28, width: 28 } });

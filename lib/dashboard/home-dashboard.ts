@@ -21,10 +21,10 @@ export type HomeReminder = {
 };
 
 export type HomeTodayHero = {
-  remainingClasses: number;
   tasksDueToday: number;
   nextItem: CalendarItem | null;
-  nextState: 'current' | 'upcoming' | null;
+  nextTask: Task | null;
+  nextState: 'current' | 'upcoming' | 'due' | null;
 };
 
 export function getTodayClasses(items: CalendarItem[], now = new Date()): CalendarItem[] {
@@ -118,17 +118,21 @@ export function getHomeTodayHero(items: CalendarItem[], tasks: Task[], now = new
   const todayClasses = getTodayClasses(items, now);
   const remainingClasses = todayClasses.filter((item) => Date.parse(item.endAt ?? item.startAt) >= now.getTime());
   const activeTasksDueToday = tasks.filter((task) => task.status !== 'COMPLETED' && task.dueAt !== null && toLocalDateKey(task.dueAt) === today);
-  const currentClass = remainingClasses.find((item) => Date.parse(item.startAt) <= now.getTime()) ?? null;
-  const upcomingClass = remainingClasses.find((item) => Date.parse(item.startAt) > now.getTime()) ?? null;
-  const upcomingEvent = items
-    .filter((item) => item.sourceType === 'event' && item.date === today && (item.isAllDay || Date.parse(item.endAt ?? item.startAt) >= now.getTime()))
+  const currentTimedItem = items
+    .filter((item) => (item.sourceType === 'class_schedule' || item.sourceType === 'event') && item.date === today && !item.isAllDay && Date.parse(item.startAt) <= now.getTime() && Date.parse(item.endAt ?? item.startAt) >= now.getTime())
     .sort(compareCalendarTime)[0] ?? null;
-  const nextItem = currentClass ?? upcomingClass ?? upcomingEvent;
+  const upcomingClass = remainingClasses.find((item) => Date.parse(item.startAt) > now.getTime()) ?? null;
+  const upcomingTimedEvent = items
+    .filter((item) => item.sourceType === 'event' && item.date === today && !item.isAllDay && Date.parse(item.startAt) > now.getTime())
+    .sort(compareCalendarTime)[0] ?? null;
+  const nextItem = currentTimedItem ?? upcomingClass ?? upcomingTimedEvent;
+  const endToday = addDays(startOfDay(now), 1).getTime();
+  const nextTask = nextItem ? null : getImportantHomeTasks(tasks, now).find((task) => task.dueAt && Date.parse(task.dueAt) < endToday) ?? null;
   return {
-    remainingClasses: remainingClasses.length,
     tasksDueToday: activeTasksDueToday.length,
     nextItem,
-    nextState: currentClass ? 'current' : nextItem ? 'upcoming' : null,
+    nextTask,
+    nextState: currentTimedItem ? 'current' : nextItem ? 'upcoming' : nextTask ? 'due' : null,
   };
 }
 

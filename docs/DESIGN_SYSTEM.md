@@ -4,13 +4,9 @@ The mobile UI uses a token-based, student-friendly system in `constants/theme.ts
 
 ## Theme packs
 
-- **Sage Study** uses quiet greens and paper-like neutrals.
-- **Latte Notes** uses warm coffee, cream, and notebook tones.
-- **Sky Planner** uses clear blues and airy cool neutrals.
-- **Lavender Focus** uses soft violets for calm concentration.
-- **Dark Academia** uses parchment, library wood, and ink tones.
+- **Default**, **Lavender**, **Rose**, **Ocean**, **Forest**, **Sunset**, **Peach**, **Mint**, **Sky**, and **Mono** provide coordinated light/dark surfaces and restrained accents.
 
-Settings supports Follow system, Light, and Dark display modes. Theme-pack and mode preferences are stored locally with Expo SecureStore on native devices and browser storage on web. Selection updates the active palette immediately and does not alter server data.
+Appearance supports System, Light, and Dark modes, ten theme packs, twenty curated accent choices, and a spectrum-based custom accent picker. Theme, mode, and optional accent override are stored locally with Expo SecureStore on native devices and browser storage on web. Accent overrides derive only global interface roles; Course colors remain record-owned identifiers and are never rewritten.
 
 ## Foundations
 
@@ -43,14 +39,14 @@ New UI should use theme colors through `useThemeColor` or `useAppearance`, and l
 
 The main bottom navigation is limited to Home, Calendar, Tasks, Courses, and Settings. Home and Calendar alone use the global Task/Event/Note floating menu. Tasks and Courses have direct header `+` actions, Settings has none, and Course Details uses one Course-scoped Task/Event & Note/Materials menu.
 
-Course cards use responsive numeric widths, two-line title clamping, one-line metadata, and restrained course accents to prevent overlap on narrow devices. Home mixes a compact hero, seven-column flex strip, equal-height context widgets that stack below 380 points, a horizontal class carousel, and compact task rows; Course Details keeps bounded previews without turning either surface into a full feature screen.
+Course cards use responsive numeric widths, two-line title clamping, one-line metadata, and restrained course accents to prevent overlap on narrow devices. Home mixes a day-flow hero, seven-column flex strip, horizontal class carousel, at most one full-width Spotlight, and compact task rows; Course Details keeps bounded previews without turning either surface into a full feature screen.
 
-Quick Add uses a separate anchored-popup primitive: a content-sized themed surface above the 50-point FAB, subtle fade/scale/lift motion, `+`-to-`×` morph, outside/drag/Back/navigation dismissal, and nested compact choices. Add Task, Event, Note, and Material metadata instead share the existing adaptive bottom-sheet primitive with dim backdrop, rounded surface, drag handle, feature-specific initial snaps, keyboard expansion, and unsaved-change guards. No third-party sheet dependency is added.
+Quick Add uses a separate anchored-popup primitive: a content-sized themed surface above the 50-point FAB, subtle fade/scale/lift motion, a persistent `+` glyph, outside/drag/Back/navigation dismissal, and nested compact choices. Add Task, Event, Note, and Material metadata instead share the existing adaptive bottom-sheet primitive with dim backdrop, rounded surface, drag handle, feature-specific initial snaps, keyboard expansion, and unsaved-change guards. No third-party sheet dependency is added.
 
 Reusable form date fields use a themed `react-native-calendars` month sheet. Reusable time fields use `@react-native-community/datetimepicker` with a visible 12-hour AM/PM preview while preserving the existing local `HH:mm` storage boundary. Custom Course color selection uses `reanimated-color-picker`; selection is communicated by fill, border, and ring treatments instead of decorative checkmarks.
 
 The global Calendar also uses `react-native-calendars` with a fixed-height custom day renderer. Month cells use tiny color rails plus text, never color alone, and cap previews before showing `+N`. Calendar display toggles use switches and density uses filled/outlined chips without checkmark decoration.
 
-The Profile & Settings screen includes a digital student card with the signed-in name, student role, active course count, near-term task count, and current theme accent. Its counts reuse existing dashboard data and introduce no new API contract.
+Student Profile owns signed-in identity only: name, student role, and email. Settings owns application preferences, account actions, and version information. Notification controls persist local choices but deliberately do not request permission or schedule delivery until notification execution is separately implemented.
 
 Motion is restrained to press feedback, modal-sheet presentation, and subtle skeleton pulsing. Theme changes are applied live through `AppearanceProvider`; they do not alter API state or navigation.

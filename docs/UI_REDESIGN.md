@@ -40,7 +40,7 @@ React Native Paper is not currently installed. The project already has Expo Rout
 - `AppButton`, `AppCard`, `ChoiceChip`, `SectionHeader`, `FloatingActionButton`, loading/error/empty states, and a destructive confirmation helper.
 - Feature cards and forms for Courses, Tasks, Calendar Events, Class Schedules, and Files.
 - Dashboard projection cards for next schedule, tasks, today schedule, deadlines, and files.
-- Five persistent theme packs with system/light/dark selection through `AppearanceProvider`.
+- Ten persistent theme packs with system/light/dark mode plus curated and custom accent selection through `AppearanceProvider`.
 - Expo Vector Icons and Reanimated are already available for iconography and restrained motion.
 
 ## Repeated UI problems
@@ -98,7 +98,7 @@ React Native Paper is not currently installed. The project already has Expo Rout
 - Tasks use a compact month summary, weekly selector, course tabs, filter/sort sheets, and one continuous academic card list while retaining completion and supported backend filters.
 - Courses use a responsive fixed-height two-column folder grid plus a compact Personal Library utility tile; Course Details exposes Tasks, combined Events & Notes, schedule summary, and recent Materials directly without permanent workspace tabs.
 - Calendar keeps the existing month/date logic and combines a collapsible month, week strip, legend, and selected-day timeline.
-- The shared File Library supports all-files, one-course, and personal scopes with exact multi-extension material categories.
+- The shared File Library supports all-files, one-course, and personal scopes with exact multi-extension material categories; Settings does not duplicate its navigation.
 - Task, event, file, course, and class detail/form surfaces now share semantic cards, controls, spacing, and destructive actions.
 - Profile, Appearance, and Settings live outside the main tabs. Authentication uses the same student-workspace typography and surfaces.
 

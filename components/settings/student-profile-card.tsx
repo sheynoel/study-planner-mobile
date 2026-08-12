@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -5,48 +6,14 @@ import { AppCard } from '@/components/ui/app-card';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 
-export function StudentProfileCard({ activeCourses, name, taskMetricLabel = 'Tasks this week', tasksThisWeek }: { activeCourses: number; name: string; taskMetricLabel?: string; tasksThisWeek: number }) {
-  const { colors, themePack } = useAppearance();
+export function StudentProfileCard({ email, name }: { email: string; name: string }) {
+  const { colors } = useAppearance();
   const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'ST';
-  return (
-    <AppCard style={[styles.card, { backgroundColor: colors.surfaceAccent, borderColor: colors.primary }]}>
-      <View style={[styles.patternLarge, { borderColor: colors.primary }]} /><View style={[styles.patternSmall, { backgroundColor: colors.primary }]} />
-      <View style={styles.topRow}>
-        <View style={[styles.avatar, { backgroundColor: colors.primary }]}><ThemedText type="subtitle" style={{ color: colors.primaryText }}>{initials}</ThemedText></View>
-        <View style={styles.identity}>
-          <ThemedText type="title" numberOfLines={2} style={styles.name}>{name}</ThemedText>
-          <ThemedText type="defaultSemiBold" style={{ color: colors.primary }}>STUDENT · STUDY PLANNER</ThemedText>
-        </View>
-      </View>
-      <View style={[styles.rule, { backgroundColor: colors.primary }]} />
-      <View style={styles.stats}>
-        <Stat label="Active courses" value={String(activeCourses)} />
-        <Stat label={taskMetricLabel} value={String(tasksThisWeek)} />
-        <View style={styles.stat}>
-          <View style={[styles.accentDot, { backgroundColor: colors.primary }]} />
-          <ThemedText type="defaultSemiBold" numberOfLines={1}>{themePack.name}</ThemedText>
-          <ThemedText style={styles.statLabel}>Theme accent</ThemedText>
-        </View>
-      </View>
-    </AppCard>
-  );
+  return <AppCard style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[styles.avatar, { backgroundColor: colors.primaryContainer, borderColor: colors.primary }]}><ThemedText style={[styles.initials, { color: colors.primary }]}>{initials}</ThemedText></View>
+    <View style={styles.identity}><ThemedText numberOfLines={2} style={styles.name}>{name}</ThemedText><ThemedText style={[styles.role, { color: colors.primary }]}>STUDENT</ThemedText></View>
+    <View style={[styles.accountRow, { borderTopColor: colors.border }]}><Ionicons color={colors.textSecondary} name="mail-outline" size={17} /><View style={styles.accountText}><ThemedText style={[styles.fieldLabel, { color: colors.textSecondary }]}>SIGNED-IN EMAIL</ThemedText><ThemedText numberOfLines={2} selectable style={styles.email}>{email}</ThemedText></View></View>
+  </AppCard>;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return <View style={styles.stat}><ThemedText type="subtitle">{value}</ThemedText><ThemedText style={styles.statLabel}>{label}</ThemedText></View>;
-}
-
-const styles = StyleSheet.create({
-  card: { gap: DesignTokens.spacing.lg, overflow: 'hidden', padding: DesignTokens.spacing.xl },
-  topRow: { alignItems: 'center', flexDirection: 'row', gap: DesignTokens.spacing.lg },
-  avatar: { alignItems: 'center', borderRadius: DesignTokens.radius.pill, height: 64, justifyContent: 'center', width: 64 },
-  identity: { flex: 1, gap: DesignTokens.spacing.xs },
-  name: { fontSize: 26, lineHeight: 31 },
-  rule: { height: 2, opacity: 0.35 },
-  stats: { flexDirection: 'row', gap: DesignTokens.spacing.md },
-  stat: { flex: 1, gap: 2 },
-  statLabel: { fontSize: 12, lineHeight: 16 },
-  accentDot: { borderRadius: DesignTokens.radius.pill, height: 18, width: 18 },
-  patternLarge: { borderRadius: 90, borderWidth: 18, height: 150, opacity: 0.08, position: 'absolute', right: -54, top: -62, width: 150 },
-  patternSmall: { borderRadius: 30, bottom: -18, height: 60, left: -16, opacity: 0.08, position: 'absolute', width: 60 },
-});
+const styles = StyleSheet.create({ card: { alignItems: 'center', gap: DesignTokens.spacing.md, padding: DesignTokens.spacing.xl }, avatar: { alignItems: 'center', borderRadius: DesignTokens.radius.pill, borderWidth: 1.5, height: 68, justifyContent: 'center', width: 68 }, initials: { fontSize: 21, fontWeight: '800', lineHeight: 27 }, identity: { alignItems: 'center', gap: 3 }, name: { fontSize: 23, fontWeight: '800', lineHeight: 29, textAlign: 'center' }, role: { fontSize: 10, fontWeight: '900', letterSpacing: 1, lineHeight: 14 }, accountRow: { alignItems: 'center', alignSelf: 'stretch', borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: DesignTokens.spacing.md, marginTop: DesignTokens.spacing.sm, paddingTop: DesignTokens.spacing.lg }, accountText: { flex: 1, gap: 2, minWidth: 0 }, fieldLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8, lineHeight: 12 }, email: { fontSize: 12, fontWeight: '600', lineHeight: 17 } });

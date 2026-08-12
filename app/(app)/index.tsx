@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { LayoutAnimation, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppSectionTabs } from '@/components/app-section-tabs';
 import { ErrorBanner } from '@/components/auth/auth-form';
@@ -29,7 +29,7 @@ import { formatLocalTime, parseLocalDate, toLocalDateKey } from '@/lib/calendar/
 import { normalizeCalendarNotes } from '@/lib/calendar/calendar-items';
 import { calendarRoutes } from '@/lib/calendar/routes';
 import { courseRoutes } from '@/lib/courses/routes';
-import { getClassNotes, getClassTimeState, getHomeReminders, getHomeTodayHero, getImportantHomeTasks, getNextRemainingClass, getNextUpcomingEvent, getTodayClasses, type HomeReminder } from '@/lib/dashboard/home-dashboard';
+import { getClassTimeState, getHomeReminders, getHomeTodayHero, getImportantHomeTasks, getNextUpcomingEvent, getTodayClasses, type HomeReminder } from '@/lib/dashboard/home-dashboard';
 import { noteRoutes } from '@/lib/notes/routes';
 import { getTaskDeadline } from '@/lib/tasks/task-deadline';
 import { taskRoutes } from '@/lib/tasks/routes';
@@ -37,7 +37,6 @@ import { taskRoutes } from '@/lib/tasks/routes';
 export default function HomeDashboardScreen() {
   const { user } = useAuth();
   const { colors } = useAppearance();
-  const { width } = useWindowDimensions();
   const dashboard = useDashboard();
   const calendar = useCalendar();
   const { expanded, toggleSection } = useHome();
@@ -63,16 +62,12 @@ export default function HomeDashboardScreen() {
   const courseById = useMemo(() => new Map(dashboard.courses.map((course) => [course.id, course])), [dashboard.courses]);
   const courseColors = useMemo(() => new Map(dashboard.courses.map((course) => [course.id, course.color])), [dashboard.courses]);
   const todayClasses = useMemo(() => getTodayClasses(dashboard.todaySchedule, now), [dashboard.todaySchedule, now]);
-  const classNotes = useMemo(() => new Map(todayClasses.map((item) => [item.id, getClassNotes(notes, item.courseId, now)])), [notes, now, todayClasses]);
-  const classNoteIds = useMemo(() => new Set([...classNotes.values()].flat().map((note) => note.id)), [classNotes]);
-  const reminders = useMemo(() => getHomeReminders(dashboard.todaySchedule, notes, dashboard.courses, classNoteIds, now), [classNoteIds, dashboard.courses, dashboard.todaySchedule, notes, now]);
+  const reminders = useMemo(() => getHomeReminders(dashboard.todaySchedule, notes, dashboard.courses, new Set(), now), [dashboard.courses, dashboard.todaySchedule, notes, now]);
   const importantTasks = useMemo(() => getImportantHomeTasks(dashboard.tasks, now, 4), [dashboard.tasks, now]);
   const hero = useMemo(() => getHomeTodayHero(dashboard.todaySchedule, dashboard.tasks, now), [dashboard.tasks, dashboard.todaySchedule, now]);
-  const nextClass = useMemo(() => getNextRemainingClass(dashboard.todaySchedule, now), [dashboard.todaySchedule, now]);
   const nextEvent = useMemo(() => getNextUpcomingEvent(dashboard.upcomingSchedule, now), [dashboard.upcomingSchedule, now]);
   const weekItems = useMemo(() => [...calendar.items, ...normalizeCalendarNotes(notes, dashboard.courses).filter((item) => item.date >= weekRange.firstDate && item.date <= weekRange.lastDate)], [calendar.items, dashboard.courses, notes, weekRange.firstDate, weekRange.lastDate]);
-  const contextWidgets = useMemo(() => buildContextWidgets(nextClass, reminders, importantTasks, nextEvent, courseById, now), [courseById, importantTasks, nextClass, nextEvent, now, reminders]);
-  const stackWidgets = width < 380;
+  const spotlight = useMemo(() => buildSpotlight(hero, reminders, importantTasks, nextEvent, courseById, now), [courseById, hero, importantTasks, nextEvent, now, reminders]);
   const reminderError = dashboard.errors.events ?? noteError;
 
   async function refreshAll() {
@@ -97,19 +92,19 @@ export default function HomeDashboardScreen() {
     <DashboardHeader name={user?.name ?? 'Student'} />
     {dashboard.isLoading && !dashboard.hasLoaded ? <View style={styles.padded}><LoadingSkeleton rows={4} /></View> : null}
     {dashboard.hasLoaded ? <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl colors={[colors.primary]} onRefresh={() => void refreshAll()} refreshing={dashboard.isRefreshing} tintColor={colors.primary} />} showsVerticalScrollIndicator={false}>
-      <View style={styles.heroWrap}><HomeTodayHeroCard accentColor={hero.nextItem?.courseId ? courseColors.get(hero.nextItem.courseId) : hero.nextItem?.color} data={hero} onOpenNext={hero.nextItem ? () => openCalendarItem(hero.nextItem!) : undefined} /></View>
+      <View style={styles.heroWrap}><HomeTodayHeroCard accentColor={hero.nextItem?.courseId ? courseColors.get(hero.nextItem.courseId) : hero.nextTask?.courseId ? courseColors.get(hero.nextTask.courseId) : hero.nextItem?.color} data={hero} now={now} onOpenNext={hero.nextItem ? () => openCalendarItem(hero.nextItem!) : hero.nextTask ? () => router.push(taskRoutes.details(hero.nextTask!.id)) : undefined} /></View>
       <View style={styles.weekWrap}><HomeWeekStrip courseColors={courseColors} items={weekItems} onOpenDate={(date) => router.push(calendarRoutes.forDate(date))} today={now} /></View>
-
-      {contextWidgets.length ? <View accessibilityLabel="Today context" style={[styles.widgetRow, stackWidgets ? styles.widgetStack : undefined]}>{contextWidgets.map((widget) => <HomeContextWidget data={widget.data} key={widget.data.label} onPress={widget.onPress} />)}</View> : null}
-      {reminderError ? <View style={styles.contextError}><ErrorBanner message={reminderError} /></View> : null}
 
       <View style={styles.classesSection}><CollapsibleHomeSection action={<SmallAction accessibilityLabel="View today's classes in Calendar" label="See all" onPress={() => router.push(calendarRoutes.forDate(todayKey))} />} expanded={expanded.classes} onToggle={() => toggleSection('classes')} title="Classes Today">
         {dashboard.errors.schedules || dashboard.errors.courses ? <ErrorBanner message={dashboard.errors.schedules ?? dashboard.errors.courses ?? null} /> : null}
         {todayClasses.length ? <ScrollView accessibilityLabel="Classes today" contentContainerStyle={styles.classCarousel} horizontal showsHorizontalScrollIndicator={false}>{todayClasses.map((item) => {
           const course = item.courseId ? courseById.get(item.courseId) : undefined;
-          return <TodayClassCard courseCode={course?.code || course?.name || 'Class'} item={item} key={item.id} notes={classNotes.get(item.id) ?? []} onPress={() => { if (item.courseId) router.push(courseRoutes.details(item.courseId)); }} state={getClassTimeState(item, now)} width={152} />;
+          return <TodayClassCard courseCode={course?.code || course?.name || 'Class'} item={item} key={item.id} onPress={() => { if (item.courseId) router.push(courseRoutes.details(item.courseId)); }} state={getClassTimeState(item, now)} width={160} />;
         })}</ScrollView> : <CalmEmptyState label="No classes today." actionLabel="View Calendar" onAction={() => router.push(calendarRoutes.forDate(todayKey))} />}
       </CollapsibleHomeSection></View>
+
+      {spotlight ? <View accessibilityLabel="Spotlight" style={styles.spotlight}><HomeContextWidget data={spotlight.data} onPress={spotlight.onPress} /></View> : null}
+      {reminderError ? <View style={styles.contextError}><ErrorBanner message={reminderError} /></View> : null}
 
       <CollapsibleHomeSection action={<SmallAction accessibilityLabel="View all tasks" label="View all" onPress={() => router.push(taskRoutes.list)} />} expanded={expanded.tasks} onToggle={() => toggleSection('tasks')} title="Tasks">
         {dashboard.errors.tasks || completionError ? <ErrorBanner message={completionError ?? dashboard.errors.tasks ?? null} /> : null}
@@ -131,24 +126,16 @@ function CalmEmptyState({ actionLabel, label, onAction }: { actionLabel?: string
 
 type WidgetTarget = { data: HomeContextWidgetData; onPress: () => void };
 
-function buildContextWidgets(nextClass: CalendarItem | null, reminders: HomeReminder[], tasks: Task[], nextEvent: CalendarItem | null, courseById: Map<string, { code: string | null; color: string; name: string }>, now: Date): WidgetTarget[] {
-  const widgets: WidgetTarget[] = [];
-  if (nextClass) widgets.push({
-    data: {
-      label: 'NEXT CLASS',
-      title: nextClass.courseCode || nextClass.title,
-      subtitle: nextClass.courseName,
-      metadata: [getClassTimeState(nextClass, now) === 'current' ? 'Now' : formatLocalTime(nextClass.startAt), nextClass.location].filter(Boolean).join(' · '),
-      color: nextClass.color,
-      accessibilityLabel: `Open next class, ${nextClass.title}`,
-    },
-    onPress: () => { if (nextClass.courseId) router.push(courseRoutes.details(nextClass.courseId)); },
-  });
-  const reminder = reminders.find((item) => item.sourceType === 'note') ?? reminders[0];
-  if (reminder) widgets.push(reminderWidget(reminder, courseById));
-  else if (tasks[0]) widgets.push(taskWidget(tasks[0], courseById));
-  else if (nextEvent) widgets.push(eventWidget(nextEvent, courseById));
-  return widgets;
+function buildSpotlight(hero: ReturnType<typeof getHomeTodayHero>, reminders: HomeReminder[], tasks: Task[], nextEvent: CalendarItem | null, courseById: Map<string, { code: string | null; color: string; name: string }>, now: Date): WidgetTarget | null {
+  const isNotHeroItem = (item: HomeReminder) => !(hero.nextItem?.sourceType === item.sourceType && hero.nextItem.sourceId === item.sourceId);
+  const reminder = reminders.find((item) => item.sourceType === 'note' && isNotHeroItem(item)) ?? reminders.find(isNotHeroItem);
+  if (reminder) return reminderWidget(reminder, courseById);
+  const tomorrowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2).getTime();
+  const task = tasks.find((item) => item.id !== hero.nextTask?.id && item.dueAt && Date.parse(item.dueAt) < tomorrowEnd);
+  if (task) return taskWidget(task, courseById);
+  const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 8).getTime();
+  if (nextEvent && nextEvent.id !== hero.nextItem?.id && Date.parse(nextEvent.startAt) < weekEnd) return eventWidget(nextEvent, courseById);
+  return null;
 }
 
 function reminderWidget(reminder: HomeReminder, courseById: Map<string, { color: string }>): WidgetTarget {
@@ -199,8 +186,7 @@ const styles = StyleSheet.create({
   padded: { paddingHorizontal: DesignTokens.layout.screenPadding },
   heroWrap: { marginBottom: DesignTokens.spacing.lg },
   weekWrap: { marginBottom: DesignTokens.spacing.xl },
-  widgetRow: { flexDirection: 'row', gap: DesignTokens.spacing.sm, marginBottom: DesignTokens.spacing.xxl },
-  widgetStack: { flexDirection: 'column' },
+  spotlight: { marginBottom: DesignTokens.spacing.xxl },
   contextError: { marginBottom: DesignTokens.spacing.xl },
   classesSection: { marginBottom: DesignTokens.spacing.xxl },
   classCarousel: { gap: DesignTokens.spacing.sm, paddingRight: DesignTokens.layout.screenPadding },

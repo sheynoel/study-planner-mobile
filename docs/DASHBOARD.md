@@ -4,28 +4,28 @@ The authenticated Home route is a compact, today-focused composition of the exis
 
 ## Structure and navigation
 
-`/` is the default authenticated route. Home is ordered as greeting/current date, Today hero, compact seven-day strip, responsive context widgets, a horizontal Classes Today carousel, and a bounded Tasks preview. Classes and Tasks expand independently and default to expanded; `HomeProvider` keeps that state only for the current JavaScript session.
+`/` is the default authenticated route. Home is ordered as greeting/current date, a day-flow hero, compact seven-day strip, horizontal Classes Today carousel, at most one contextual Spotlight, and a bounded Tasks preview. Classes and Tasks expand independently and default to expanded; `HomeProvider` keeps that state only for the current JavaScript session.
 
 The five bottom navigation actions remain Home, Calendar, Tasks, Courses, and Settings. A non-today day in the strip opens the existing Calendar route with that date selected. Home never becomes an arbitrary-date agenda and does not expose month navigation, calendar display settings, task filtering, or task sorting.
 
-Home Quick Add is a content-sized popup anchored above its FAB and contains only Task, Event, and Note. The FAB morphs from `+` to `×` while open. All seven dates, including today, route to Calendar with that date selected instead of changing Home state.
+Home Quick Add is a content-sized popup anchored above its FAB and contains only Task, Event, and Note. The FAB remains `+` while open. All seven dates, including today, route to Calendar with that date selected instead of changing Home state.
 
 ## Week strip
 
 The strip shows today centered between three nearby past and future dates. Today remains the selected Home date. Tiny activity dots reuse normalized task, event, Note, and locally generated class-occurrence data, preferring Course colors for associated items and never displaying event text.
 
-## Today hero and context widgets
+## Day-flow hero and Spotlight
 
-The hero is the visual anchor without becoming an analytics card. It counts only classes that have not ended and active tasks whose due timestamp falls on the device-local current day. Its next item is the current class, next class, or today's next Event in that order; when none exists it renders a compact clear-day message.
+The hero is the visual anchor without becoming an analytics card. An 08:00–17:00 timeline provides day context without repeating the weekday or date. It surfaces one current timed class/Event, next class, next timed Event, or important due item in that order. Active tasks due today appear only as a small nonzero due count; when no relevant item remains, the hero renders a clear-rest-of-day message.
 
-Below the week strip, Next Class and Don't Forget use equal-height cards in two columns and stack below 380 points. Next Class is omitted when no class remains. Don't Forget selects the most relevant Note/reminder first, then an important active Task, then the next Event. If only one widget has content, it expands across the row. Course text accompanies each Course-color accent.
+There is no standalone Next Class widget. After Classes Today, an optional full-width Spotlight selects one relevant Note/reminder, near-term active Task, or Event while excluding the item already shown in the hero. Spotlight is omitted when no item genuinely needs attention.
 
 ## Classes Today
 
 - Existing two-week dashboard data supplies locally generated class occurrences for the device-local current date.
-- Occurrences sort by local start time and render as uniform 152-by-108-point cards in a horizontal carousel with a Course-color accent.
+- Occurrences sort by local start time and render as uniform compact cards in a horizontal carousel with a Course-color accent.
 - Local wall-clock start/end values determine subtle past, current, and upcoming emphasis; a current class receives a small `Now` label.
-- A class may show one Note title when the exact Course UUID matches and either `relevantAt` or `reminderAt` falls on today.
+- Cards show only time, course identity, optional room, and a tiny `Now` state; related Notes belong in the single Spotlight instead of expanding class metadata.
 - An empty day uses a small message with a Calendar route instead of reserving carousel space.
 
 ## Important tasks

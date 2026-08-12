@@ -1,11 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-import type { AppearanceMode, ThemePackId } from '@/constants/theme';
+import { isHexColor, type AppearanceMode, type ThemePackId } from '@/constants/theme';
 
 const APPEARANCE_KEY = 'study-planner.appearance';
 
-export type AppearancePreferences = { mode: AppearanceMode; themePack: ThemePackId };
+export type AppearancePreferences = { accentColor: string | null; mode: AppearanceMode; themePack: ThemePackId };
 
 export async function getStoredAppearance(): Promise<AppearancePreferences | null> {
   const value = Platform.OS === 'web'
@@ -14,8 +14,10 @@ export async function getStoredAppearance(): Promise<AppearancePreferences | nul
   if (!value) return null;
   try {
     const parsed = JSON.parse(value) as Partial<AppearancePreferences>;
-    if (!isAppearanceMode(parsed.mode) || !isThemePack(parsed.themePack)) return null;
-    return { mode: parsed.mode, themePack: parsed.themePack };
+    const themePack = normalizeThemePack(parsed.themePack);
+    if (!isAppearanceMode(parsed.mode) || !themePack) return null;
+    const accentColor = typeof parsed.accentColor === 'string' && isHexColor(parsed.accentColor) ? parsed.accentColor.toUpperCase() : null;
+    return { accentColor, mode: parsed.mode, themePack };
   } catch {
     return null;
   }
@@ -34,6 +36,9 @@ function isAppearanceMode(value: unknown): value is AppearanceMode {
   return value === 'system' || value === 'light' || value === 'dark';
 }
 
-function isThemePack(value: unknown): value is ThemePackId {
-  return value === 'sage' || value === 'latte' || value === 'sky' || value === 'lavender' || value === 'academia';
+function normalizeThemePack(value: unknown): ThemePackId | null {
+  if (value === 'sage') return 'default';
+  if (value === 'latte') return 'peach';
+  if (value === 'academia') return 'mono';
+  return value === 'default' || value === 'lavender' || value === 'rose' || value === 'ocean' || value === 'forest' || value === 'sunset' || value === 'peach' || value === 'mint' || value === 'sky' || value === 'mono' ? value : null;
 }

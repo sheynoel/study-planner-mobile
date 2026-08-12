@@ -1,43 +1,42 @@
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { useState, type PropsWithChildren } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppSectionTabs } from '@/components/app-section-tabs';
 import { ErrorBanner } from '@/components/auth/auth-form';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedText } from '@/components/themed-text';
-import { AppButton } from '@/components/ui/app-button';
 import { AppScreen } from '@/components/ui/app-screen';
-import { BentoCard } from '@/components/ui/bento-card';
-import { SectionHeader } from '@/components/ui/section-header';
 import { DesignTokens } from '@/constants/theme';
+import { useAppearance } from '@/contexts/appearance-context';
 import { getAuthErrorMessage, useAuth } from '@/contexts/auth-context';
-import { fileRoutes } from '@/lib/files/routes';
-import { noteRoutes } from '@/lib/notes/routes';
+import { useNotificationPreferences } from '@/contexts/notification-preferences-context';
 
 export default function SettingsScreen() {
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
+  const { colors, mode, themePack } = useAppearance();
+  const { preferences } = useNotificationPreferences();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function handleLogout() { if (isLoggingOut) return; setError(null); setIsLoggingOut(true); try { await logout(); } catch (reason) { setError(getAuthErrorMessage(reason)); setIsLoggingOut(false); } }
+  const notificationSummary = preferences.enabled ? 'Reminder preferences enabled' : 'Preferences off';
+  const modeLabel = mode === 'system' ? 'System' : mode === 'light' ? 'Light' : 'Dark';
+
   return <AppScreen footer={<AppSectionTabs active="settings" />}>
-    <AppHeader subtitle="Your account, workspace, and app preferences." title="Settings" />
-    <ScrollView contentContainerStyle={styles.content}>
-      <BentoCard style={styles.account} tone="accent"><ThemedText type="subtitle">Account</ThemedText><ThemedText>{user?.name ?? 'Student'}</ThemedText><ThemedText selectable>{user?.email ?? 'Email unavailable'}</ThemedText></BentoCard>
-      <SectionHeader title="Student workspace" />
-      <SettingsRow description="Your student card and planner activity" icon="person-outline" label="Profile" onPress={() => router.push('/profile')} />
-      <SettingsRow description="Theme pack, light, dark, or system mode" icon="color-palette-outline" label="Appearance" onPress={() => router.push('/appearance')} />
-      <SettingsRow description="Browse every course and personal material" icon="library-outline" label="File Library" onPress={() => router.push(fileRoutes.list)} />
-      <SettingsRow description="Personal and course information to remember" icon="document-text-outline" label="Notes" onPress={() => router.push(noteRoutes.list)} />
-      <SectionHeader title="Preferences" />
-      <SettingsRow description="Reminders are not implemented yet" disabled icon="notifications-outline" label="Notifications" trailing="Coming soon" />
-      <SettingsRow description="Week start and planner defaults are not implemented" disabled icon="calendar-outline" label="Calendar preferences" trailing="Coming soon" />
-      <SectionHeader title="Account actions" />
-      <SettingsRow description="View the signed-in account identity" icon="shield-checkmark-outline" label="Account" onPress={() => router.push('/profile')} />
-      <ErrorBanner message={error} />
-      <AppButton label={isLoggingOut ? 'Signing out...' : 'Sign out'} loading={isLoggingOut} onPress={() => void handleLogout()} variant="danger" />
+    <AppHeader compactTitle title="Settings" />
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <SettingSection label="APPEARANCE"><SettingGroup><SettingsRow description={`${themePack.name} · ${modeLabel}`} grouped icon="color-palette-outline" label="Appearance" onPress={() => router.push('/appearance')} /></SettingGroup></SettingSection>
+      <SettingSection label="NOTIFICATIONS"><SettingGroup><SettingsRow description={notificationSummary} grouped icon="notifications-outline" label="Notifications" onPress={() => router.push('/notifications')} /></SettingGroup></SettingSection>
+      <SettingSection label="ACCOUNT"><SettingGroup><SettingsRow description="Name and signed-in account identity" divider grouped icon="person-outline" label="Student Profile" onPress={() => router.push('/profile')} /><SettingsRow danger description={isLoggingOut ? 'Signing out…' : 'End this session on this device'} disabled={isLoggingOut} grouped icon="log-out-outline" label="Sign out" onPress={() => void handleLogout()} /></SettingGroup></SettingSection>
+      {error ? <ErrorBanner message={error} /> : null}
+      <SettingSection label="ABOUT"><View style={[styles.version, { borderColor: colors.border }]}><ThemedText style={styles.versionTitle}>Study Planner</ThemedText><ThemedText style={[styles.versionText, { color: colors.textSecondary }]}>Version {Constants.expoConfig?.version ?? '1.0.0'}</ThemedText></View></SettingSection>
     </ScrollView>
   </AppScreen>;
 }
-const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.md, padding: DesignTokens.layout.screenPadding, paddingBottom: 132 }, account: { gap: DesignTokens.spacing.sm } });
+
+function SettingSection({ children, label }: PropsWithChildren<{ label: string }>) { const { colors } = useAppearance(); return <View style={styles.section}><ThemedText style={[styles.sectionLabel, { color: colors.textSecondary }]}>{label}</ThemedText>{children}</View>; }
+function SettingGroup({ children }: PropsWithChildren) { const { colors } = useAppearance(); return <View style={[styles.group, { backgroundColor: colors.surface, borderColor: colors.border }]}>{children}</View>; }
+
+const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.xl, padding: DesignTokens.layout.screenPadding, paddingBottom: 132 }, section: { gap: DesignTokens.spacing.sm }, sectionLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1, lineHeight: 14, paddingHorizontal: 2 }, group: { borderRadius: DesignTokens.radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' }, version: { borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 2, paddingTop: DesignTokens.spacing.md }, versionTitle: { fontSize: 12, fontWeight: '700', lineHeight: 16 }, versionText: { fontSize: 10, lineHeight: 14 } });

@@ -6,7 +6,7 @@ This document records the online-only mobile File Management flow consuming the 
 
 - Typed safe metadata, Course summary, upload/update requests, list filters, and response envelopes with runtime response validation.
 - Protected File provider using the existing JWT session lifecycle for list, detail, upload, update, delete, and download operations.
-- Compact File list, Personal Library, upload, detail, and edit routes. Files are no longer a primary tab; the all-files view is available from Settings, while Course Details shows three recent files before opening the full course-scoped Materials library.
+- Compact File list, Personal Library, upload, detail, and edit routes. Files are no longer a primary tab; Course Details shows three recent files before opening the full course-scoped Materials library, and Courses exposes Personal Library. The all-files route remains implemented without a duplicate Settings entry.
 - Reusable File card, type icon, filter bar, picker field, upload form, metadata form, and download button.
 - Search, course, and all supported file-extension filters.
 - Loading, empty, error, retry, upload, edit, download-progress, and delete states with duplicate-action protection.
@@ -28,7 +28,7 @@ The three library entry points share `FileLibrary`, `MaterialFilterBar`, categor
 
 - Course Details > Materials fixes the real Course UUID in backend requests.
 - Courses > Personal Library requests owned files and locally keeps only `courseId: null` because the backend has no personal-only sentinel.
-- Settings > File Library shows all files and supports a real Course UUID or Personal selection.
+- The existing all-files route supports a real Course UUID or Personal selection; it is not presented as an app preference in Settings.
 
 Material categories are presentation filters: PDF is `pdf`; Slides is `ppt`/`pptx`; Documents is `doc`/`docx`/`txt`; Images is `png`/`jpg`/`jpeg`/`webp`. Category pseudo-values are never sent as `fileType` API parameters.
 
@@ -65,7 +65,7 @@ No endpoint or response-shape mismatch was found.
 1. Start PostgreSQL and the NestJS API with the File migration applied and a writable local uploads directory.
 2. Set `EXPO_PUBLIC_API_URL` to the computer's LAN IPv4 address on port `3000` and keep phone/computer on the same network.
 3. Run `npm start`, scan the QR code with Expo Go, and sign in.
-4. Open Settings > File Library and verify loading, empty, search, Course, Personal, type-category, and Retry states.
+4. Open the existing File Library route directly and verify loading, empty, search, Course, Personal, type-category, and Retry states.
 5. Tap Upload File, cancel the picker, and confirm no error appears. Pick each supported document/image family and verify name, MIME type, and readable size.
 6. Upload a personal file and a course-related file. Verify the submit button is disabled and shows an uploading state.
 7. Try an unsupported or larger-than-25-MiB file and verify clear client/backend feedback.

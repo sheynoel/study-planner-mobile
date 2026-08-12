@@ -4,7 +4,7 @@ Expo and React Native TypeScript client for a personal, cloud-synchronized stude
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Note, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive student workspace: a compact day-focused Home, task lists, course folders, a calendar timeline, and organized study materials. A local Appearance system provides Sage Study, Latte Notes, Sky Planner, Lavender Focus, and Dark Academia packs with system, light, and dark modes. Native access tokens and appearance preferences are stored with Expo SecureStore. SQLite, notifications, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Note, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive student workspace: a compact day-focused Home, task lists, course folders, a calendar timeline, and organized study materials. A local Appearance system provides ten coordinated themes, system/light/dark modes, curated accents, and a visual custom accent picker. Native access tokens and local preferences are stored with Expo SecureStore. Notification preferences have UI and local persistence, but notification delivery, SQLite, and offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -146,7 +146,7 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### File Management flow
 
-- Settings > File Library lists all personal and course-related files. Course Details previews recent course files and opens the compact course-scoped Materials library, while Courses > Personal Library shows only files with `courseId: null`.
+- Course Details previews recent course files and opens the compact course-scoped Materials library, while Courses > Personal Library shows only files with `courseId: null`. The all-files route remains implemented but is not duplicated in Settings.
 - Shared material filters provide All, PDF, Slides, Documents, and Images categories. Slides maps to PPT/PPTX, Documents to DOC/DOCX/TXT, and Images to the supported image extensions.
 - Upload uses a compact expandable sheet. Course Details > Materials opens Expo DocumentPicker automatically, locks the current Course, then returns after the existing multipart upload so the preview refreshes. The picker retains URI/name/MIME metadata and never reads Base64 into JavaScript.
 - The picker and form enforce the documented 25 MiB default before upload; backend validation messages remain authoritative.
@@ -156,13 +156,13 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### Home Dashboard flow
 
-- `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Settings. File Library remains available from Settings and course workspaces.
-- Home is composed as greeting/date, a compact Today hero, a seven-day activity strip, one or two responsive context widgets, a horizontal Classes Today carousel, and a four-item Tasks preview. Classes and Tasks can collapse independently during the app session.
+- `/` is the default authenticated route and the five bottom navigation actions are Home, Calendar, Tasks, Courses, and Settings. Materials and Personal Library remain available from their course workspace destinations rather than Settings.
+- Home is composed as greeting/date, a distinctive day-flow hero, a seven-day activity strip, a horizontal Classes Today carousel, at most one Spotlight, and a four-item Tasks preview. Classes and Tasks can collapse independently during the app session.
 - Today's recurring class occurrences are sorted by local start time, distinguish past/current/upcoming states, and may show up to two exact-course Notes whose relevant or reminder date is today in local time.
 - Today remains selected on Home. Tapping another strip date opens Calendar with that date selected; month browsing and detailed agendas stay in Calendar.
-- The Today hero counts remaining classes and active tasks due today, then surfaces the current/next class or today's next Event. A single Don't Forget widget prioritizes a relevant Note/reminder, then falls back to an important Task or upcoming Event; matching class Notes remain inside their class card instead of being duplicated.
+- The day-flow hero surfaces one current/next timed item or important due item and optionally shows the active-task due-today count. A single Spotlight prioritizes a relevant Note/reminder, then a near-term Task or upcoming Event, without duplicating the hero item.
 - Classes use uniform Course-accented cards in a horizontal carousel. Home tasks exclude completed work and prioritize overdue, due-today, and due-soon deadlines before later or undated work. The shared Tasks row and completion mutation are reused; filtering and sorting stay on Tasks.
-- Home and Calendar use one tiny anchored Quick Add popup containing only Task, Event, and Note. The FAB morphs from `+` to `×`; outside taps, drag gestures, Android Back, navigation, option selection, and `×` dismiss it. Tasks and Courses retain direct context-specific Add actions, Settings has none, and Course Details has one Course-scoped Task/Event & Note/Materials popup.
+- Home and Calendar use one tiny anchored Quick Add popup containing only Task, Event, and Note. The FAB remains `+`; outside taps, drag gestures, Android Back, navigation, option selection, and tapping `+` again dismiss it. Tasks and Courses retain direct context-specific Add actions, Settings has none, and Course Details has one Course-scoped Task/Event & Note/Materials popup.
 - Focus refreshes, pull-to-refresh, existing Task Details mutations, and section-scoped errors preserve the established data lifecycle.
 
 From this repository:

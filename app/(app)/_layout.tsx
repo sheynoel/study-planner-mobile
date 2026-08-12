@@ -8,9 +8,11 @@ import { FileProvider } from '@/contexts/file-context';
 import { DashboardProvider } from '@/contexts/dashboard-context';
 import { HomeProvider } from '@/contexts/home-context';
 import { NoteProvider } from '@/contexts/note-context';
+import { NotificationPreferencesProvider } from '@/contexts/notification-preferences-context';
 
 export default function AppLayout() {
   return (
+    <NotificationPreferencesProvider>
     <CourseProvider>
       <ClassScheduleProvider>
         <CalendarProvider>
@@ -34,5 +36,6 @@ export default function AppLayout() {
         </CalendarProvider>
       </ClassScheduleProvider>
     </CourseProvider>
+    </NotificationPreferencesProvider>
   );
 }
