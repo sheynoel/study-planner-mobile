@@ -16,6 +16,7 @@ import {
   getCourse as getCourseRequest,
   getCourses as getCoursesRequest,
   updateCourse as updateCourseRequest,
+  setCourseArchived as setCourseArchivedRequest,
 } from '@/lib/api/courses';
 import type { Course, CreateCourseRequest, UpdateCourseRequest } from '@/lib/api/course.types';
 import type { CourseListStatus } from '@/lib/courses/course-list-state';
@@ -30,6 +31,7 @@ type CourseContextValue = {
   loadCourse: (id: string) => Promise<Course>;
   loadCourses: () => Promise<void>;
   updateCourse: (id: string, request: UpdateCourseRequest) => Promise<Course>;
+  setCourseArchived: (id: string, archived: boolean) => Promise<Course>;
 };
 
 const CourseContext = createContext<CourseContextValue | null>(null);
@@ -140,6 +142,12 @@ export function CourseProvider({ children }: PropsWithChildren) {
     [runAuthenticated],
   );
 
+  const setCourseArchived = useCallback(async (id: string, archived: boolean) => {
+    const response = await runAuthenticated((token) => setCourseArchivedRequest(token, id, archived));
+    setCourses((current) => archived ? current.filter((course) => course.id !== id) : [response.data.course, ...current.filter((course) => course.id !== id)]);
+    return response.data.course;
+  }, [runAuthenticated]);
+
   const getCachedCourse = useCallback(
     (id: string) => courses.find((course) => course.id === id),
     [courses],
@@ -156,6 +164,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
       loadCourse,
       loadCourses,
       updateCourse,
+      setCourseArchived,
     }),
     [
       courses,
@@ -167,6 +176,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
       loadCourse,
       loadCourses,
       updateCourse,
+      setCourseArchived,
     ],
   );
 

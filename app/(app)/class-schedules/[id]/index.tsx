@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
@@ -20,15 +20,17 @@ import type { ClassSchedule } from '@/lib/api/class-schedule.types';
 import type { Course } from '@/lib/api/course.types';
 import { formatLocalDate } from '@/lib/calendar/calendar-date';
 import { classScheduleRoutes } from '@/lib/class-schedules/routes';
+import { formatWeekdays } from '@/lib/class-schedules/schedule-groups';
 
 export default function ClassScheduleDetailsScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const scheduleId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { colors } = useAppearance();
-  const { deleteSchedule, getCachedSchedule, loadSchedule } = useClassSchedules();
+  const { deleteGroup, deleteSchedule, fetchSchedules, getCachedSchedule, loadSchedule } = useClassSchedules();
   const { getCachedCourse, loadCourse } = useCourses();
   const [schedule, setSchedule] = useState<ClassSchedule | null>(() => scheduleId ? getCachedSchedule(scheduleId) ?? null : null);
   const [course, setCourse] = useState<Course | null>(() => schedule ? getCachedCourse(schedule.courseId) ?? null : null);
+  const [groupSchedules, setGroupSchedules] = useState<ClassSchedule[]>(schedule ? [schedule] : []);
   const [loading, setLoading] = useState(!schedule);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -36,10 +38,10 @@ export default function ClassScheduleDetailsScreen() {
   const refresh = useCallback(async () => {
     if (!scheduleId) { setError('This class schedule link is invalid.'); setLoading(false); return; }
     setLoading(true); setError(null);
-    try { const loaded = await loadSchedule(scheduleId); setSchedule(loaded); setCourse(await loadCourse(loaded.courseId)); }
+    try { const loaded = await loadSchedule(scheduleId); setSchedule(loaded); setCourse(await loadCourse(loaded.courseId)); const all = await fetchSchedules({ courseId: loaded.courseId }); setGroupSchedules(loaded.scheduleGroupId ? all.filter((item) => item.scheduleGroupId === loaded.scheduleGroupId) : [loaded]); }
     catch (reason) { setError(getApiErrorMessage(reason)); }
     finally { setLoading(false); }
-  }, [loadCourse, loadSchedule, scheduleId]);
+  }, [fetchSchedules, loadCourse, loadSchedule, scheduleId]);
 
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
 
@@ -50,7 +52,22 @@ export default function ClassScheduleDetailsScreen() {
     catch (reason) { setError(getApiErrorMessage(reason)); setDeleting(false); }
   }
 
+  async function performGroupDelete() {
+    if (!schedule?.scheduleGroupId || deleting) return;
+    setDeleting(true); setError(null);
+    try { await deleteGroup(schedule.scheduleGroupId); router.replace(classScheduleRoutes.courseList(schedule.courseId)); }
+    catch (reason) { setError(getApiErrorMessage(reason)); setDeleting(false); }
+  }
+
   function confirmDelete() {
+    if (groupSchedules.length > 1 && schedule?.scheduleGroupId) {
+      Alert.alert('Delete class schedule', 'Choose whether to remove only this weekday or the complete linked schedule.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'This day only', style: 'destructive', onPress: () => void performDelete() },
+        { text: 'All days', style: 'destructive', onPress: () => void performGroupDelete() },
+      ]);
+      return;
+    }
     showDestructiveConfirmation({ title: 'Delete class?', message: 'This removes the weekly meeting from the course and calendar.', onConfirm: () => void performDelete() });
   }
 
@@ -61,13 +78,14 @@ export default function ClassScheduleDetailsScreen() {
     {schedule ? <ScrollView contentContainerStyle={styles.content}>
       <BentoCard style={styles.hero} tone="accent"><View style={[styles.color, { backgroundColor: course?.color ?? colors.primary }]} /><View style={styles.flex}><ThemedText type="title">{course?.name ?? 'Class meeting'}</ThemedText><ThemedText style={{ color: colors.textSecondary }}>{course?.code ?? 'No course code'}</ThemedText></View></BentoCard>
       <BentoCard style={styles.card}>
-        <Row color={colors.textSecondary} label="Weekday" value={titleCase(schedule.weekday)} />
+        <Row color={colors.textSecondary} label={groupSchedules.length > 1 ? 'Weekdays' : 'Weekday'} value={groupSchedules.length > 1 ? formatWeekdays(groupSchedules.map((item) => item.weekday)) : titleCase(schedule.weekday)} />
         <Row color={colors.textSecondary} label="Time" value={`${schedule.startTime} – ${schedule.endTime}`} />
         <Row color={colors.textSecondary} label="Room" value={schedule.room ?? 'Not provided'} />
         <Row color={colors.textSecondary} label="First date" value={formatLocalDate(schedule.startDate)} />
         <Row color={colors.textSecondary} label="Last date" value={formatLocalDate(schedule.endDate)} />
       </BentoCard>
       <ErrorBanner message={error} />
+      <AppButton label="Adjust one occurrence" onPress={() => router.push(classScheduleRoutes.exception(schedule.id))} variant="secondary" />
       <AppButton label={deleting ? 'Deleting class...' : 'Delete class'} loading={deleting} onPress={confirmDelete} variant="danger" />
     </ScrollView> : null}
   </SafeAreaView></ThemedView>;

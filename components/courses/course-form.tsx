@@ -9,11 +9,10 @@ import { AppCard } from '@/components/ui/app-card';
 import { DesignTokens } from '@/constants/theme';
 import { useAppearance } from '@/contexts/appearance-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
-import { emptyCourseScheduleForm, type ClassScheduleFormValues, type CourseScheduleFormErrors, type CourseScheduleFormValues, validateCourseScheduleForm } from '@/lib/class-schedules/class-schedule-form';
-import { expandWeekdaySchedules } from '@/lib/courses/course-creation';
+import { emptyCourseScheduleForm, type CourseScheduleFormErrors, type CourseScheduleFormValues, validateCourseScheduleForm } from '@/lib/class-schedules/class-schedule-form';
 import { type CourseFormErrors, type CourseFormField, type CourseFormValues, validateCourseForm } from '@/lib/courses/course-form';
 
-export function CourseForm({ afterSubmit, initialValues, loadingLabel, modalHeader, onSubmit, submitLabel, withSchedules = false }: { afterSubmit?: ReactNode; initialValues: CourseFormValues; loadingLabel: string; modalHeader?: { actionLabel: string; onCancel: () => void; title: string }; onSubmit: (values: CourseFormValues, schedules: ClassScheduleFormValues[]) => Promise<void>; submitLabel: string; withSchedules?: boolean }) {
+export function CourseForm({ afterSubmit, initialValues, loadingLabel, modalHeader, onSubmit, submitLabel, withSchedules = false }: { afterSubmit?: ReactNode; initialValues: CourseFormValues; loadingLabel: string; modalHeader?: { actionLabel: string; onCancel: () => void; title: string }; onSubmit: (values: CourseFormValues, schedules: CourseScheduleFormValues[]) => Promise<void>; submitLabel: string; withSchedules?: boolean }) {
   const { colors } = useAppearance();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<CourseFormErrors>({});
@@ -30,7 +29,7 @@ export function CourseForm({ afterSubmit, initialValues, loadingLabel, modalHead
     const nextScheduleErrors = schedules.map(validateCourseScheduleForm);
     if (Object.keys(nextErrors).length || nextScheduleErrors.some((item) => Object.keys(item).length)) { setErrors(nextErrors); setScheduleErrors(nextScheduleErrors); return; }
     setApiError(null); setIsSubmitting(true);
-    try { await onSubmit(values, expandWeekdaySchedules(schedules)); }
+    try { await onSubmit(values, schedules); }
     catch (error) { setApiError(getApiErrorMessage(error)); }
     finally { setIsSubmitting(false); }
   }

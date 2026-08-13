@@ -26,12 +26,13 @@ import { courseRoutes } from '@/lib/courses/routes';
 export default function EditCourseScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const courseId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const { deleteCourse, loadCourse, updateCourse } = useCourses();
+  const { deleteCourse, loadCourse, setCourseArchived, updateCourse } = useCourses();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const refreshCourse = useCallback(async () => {
     if (!courseId) {
@@ -83,6 +84,13 @@ export default function EditCourseScreen() {
     }
   }
 
+  async function performArchive() {
+    if (!courseId || isArchiving) return;
+    setDeleteError(null); setIsArchiving(true);
+    try { await setCourseArchived(courseId, true); router.replace(courseRoutes.list); }
+    catch (error) { setDeleteError(getApiErrorMessage(error)); setIsArchiving(false); }
+  }
+
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -98,7 +106,7 @@ export default function EditCourseScreen() {
         ) : null}
         {course ? (
           <CourseForm
-            afterSubmit={<AppCard style={styles.danger}><ThemedText style={styles.dangerLabel}>DANGER ZONE</ThemedText><ThemedText style={styles.dangerCopy}>Permanently remove this course. Related records follow the existing backend behavior.</ThemedText><ErrorBanner message={deleteError} /><AppButton label={isDeleting ? 'Deleting course…' : 'Delete course'} loading={isDeleting} onPress={() => showDestructiveConfirmation({ title: 'Delete course?', message: 'This removes the course permanently. Tasks, notes, and files are preserved as personal items by the backend.', onConfirm: () => void performDelete() })} variant="danger" /></AppCard>}
+            afterSubmit={<><AppCard style={styles.danger}><ThemedText style={styles.dangerLabel}>COURSE LIFECYCLE</ThemedText><ThemedText style={styles.dangerCopy}>Archive this course to hide it from current courses and schedules while preserving all history.</ThemedText><ErrorBanner message={deleteError} /><AppButton label={isArchiving ? 'Archiving course…' : 'Archive course'} loading={isArchiving} onPress={() => showDestructiveConfirmation({ title: 'Archive course?', message: 'The course and all related history are preserved, but it will leave current schedule views.', confirmLabel: 'Archive', onConfirm: () => void performArchive() })} variant="secondary" /></AppCard><AppCard style={styles.danger}><ThemedText style={styles.dangerLabel}>DANGER ZONE</ThemedText><ThemedText style={styles.dangerCopy}>Permanently remove this course. Related records follow the existing backend behavior.</ThemedText><AppButton label={isDeleting ? 'Deleting course…' : 'Delete course'} loading={isDeleting} onPress={() => showDestructiveConfirmation({ title: 'Delete course?', message: 'This removes the course permanently. Tasks, notes, and files are preserved as personal items by the backend.', onConfirm: () => void performDelete() })} variant="danger" /></AppCard></>}
             initialValues={courseToFormValues(course)}
             loadingLabel="Saving changes..."
             onSubmit={handleUpdate}

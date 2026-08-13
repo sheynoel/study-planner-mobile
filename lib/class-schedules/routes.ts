@@ -13,4 +13,7 @@ export const classScheduleRoutes = {
   edit(id: string): Href {
     return { pathname: '/class-schedules/[id]/edit', params: { id } } as unknown as Href;
   },
+  exception(id: string): Href {
+    return { pathname: '/class-schedules/[id]/exception', params: { id } } as unknown as Href;
+  },
 };

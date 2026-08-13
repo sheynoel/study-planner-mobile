@@ -10,29 +10,37 @@ import type {
   DeleteClassScheduleResponse,
   UpdateClassScheduleRequest,
   UpdateClassScheduleResponse,
+  ScheduleGroupRequest,
+  ScheduleGroupResponse,
+  UpsertScheduleExceptionRequest,
 } from '@/lib/api/class-schedule.types';
-import { WEEKDAYS } from '@/lib/api/class-schedule.types';
+import { normalizeClassSchedule, normalizeClassSchedules } from '@/lib/api/class-schedule-normalization';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function isClassSchedule(value: unknown): value is ClassSchedule {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.id === 'string' &&
-    typeof value.userId === 'string' &&
-    typeof value.courseId === 'string' &&
-    typeof value.weekday === 'string' &&
-    WEEKDAYS.includes(value.weekday as (typeof WEEKDAYS)[number]) &&
-    typeof value.startTime === 'string' &&
-    typeof value.endTime === 'string' &&
-    (value.room === null || typeof value.room === 'string') &&
-    typeof value.startDate === 'string' &&
-    typeof value.endDate === 'string' &&
-    typeof value.createdAt === 'string' && !Number.isNaN(Date.parse(value.createdAt)) &&
-    typeof value.updatedAt === 'string' && !Number.isNaN(Date.parse(value.updatedAt))
-  );
+export async function createScheduleGroup(accessToken: string, request: ScheduleGroupRequest): Promise<ScheduleGroupResponse> {
+  const response = await getApiClient().post<unknown, ScheduleGroupRequest>('/class-schedules/groups', request, { acceptedStatuses: [201], headers: bearerHeaders(accessToken) });
+  return readGroupResponse(response);
+}
+
+export async function getScheduleGroup(accessToken: string, id: string): Promise<ScheduleGroupResponse> {
+  return readGroupResponse(await getApiClient().get<unknown>(`/class-schedules/groups/${encodeURIComponent(id)}`, { headers: bearerHeaders(accessToken) }));
+}
+
+export async function updateScheduleGroup(accessToken: string, id: string, request: ScheduleGroupRequest): Promise<ScheduleGroupResponse> {
+  return readGroupResponse(await getApiClient().patch<unknown, ScheduleGroupRequest>(`/class-schedules/groups/${encodeURIComponent(id)}`, request, { headers: bearerHeaders(accessToken) }));
+}
+
+export async function deleteScheduleGroup(accessToken: string, id: string): Promise<DeleteClassScheduleResponse> {
+  const response = await getApiClient().delete<unknown>(`/class-schedules/groups/${encodeURIComponent(id)}`, { headers: bearerHeaders(accessToken) });
+  const data = readData(response); if (!data || typeof data.message !== 'string') return invalidResponse();
+  return { data: { message: data.message } };
+}
+
+export async function upsertScheduleException(accessToken: string, id: string, request: UpsertScheduleExceptionRequest) {
+  return getApiClient().post<unknown, UpsertScheduleExceptionRequest>(`${schedulePath(id)}/exceptions`, request, { headers: bearerHeaders(accessToken) });
 }
 
 function readData(value: unknown): Record<string, unknown> | null {
@@ -71,10 +79,9 @@ export async function getClassSchedules(
     headers: bearerHeaders(accessToken),
   });
   const data = readData(response);
-  if (!data || !Array.isArray(data.schedules) || !data.schedules.every(isClassSchedule)) {
-    return invalidResponse();
-  }
-  return { data: { schedules: data.schedules } };
+  const schedules = data ? normalizeClassSchedules(data.schedules) : null;
+  if (!schedules) return invalidResponse();
+  return { data: { schedules } };
 }
 
 export async function createClassSchedule(
@@ -122,6 +129,15 @@ export async function deleteClassSchedule(
 
 function readScheduleResponse(value: unknown): ClassScheduleResponse {
   const data = readData(value);
-  if (!data || !isClassSchedule(data.schedule)) return invalidResponse();
-  return { data: { schedule: data.schedule } };
+  const schedule = data ? normalizeClassSchedule(data.schedule) : null;
+  if (!schedule) return invalidResponse();
+  return { data: { schedule } };
+}
+
+function readGroupResponse(value: unknown): ScheduleGroupResponse {
+  const data = readData(value);
+  if (!data || typeof data.groupId !== 'string') return invalidResponse();
+  const schedules = normalizeClassSchedules(data.schedules);
+  if (!schedules) return invalidResponse();
+  return { data: { groupId: data.groupId, schedules } };
 }

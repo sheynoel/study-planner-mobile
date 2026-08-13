@@ -1,4 +1,4 @@
-import type { ClassSchedule, CreateClassScheduleRequest, Weekday } from '@/lib/api/class-schedule.types';
+import type { ClassSchedule, CreateClassScheduleRequest, ScheduleGroupRequest, Weekday } from '@/lib/api/class-schedule.types';
 import { isValidTime, parseLocalDate } from '@/lib/calendar/calendar-date';
 
 export type ClassScheduleFormValues = {
@@ -52,6 +52,12 @@ export function classScheduleToForm(schedule: ClassSchedule): ClassScheduleFormV
   };
 }
 
+export function scheduleGroupToForm(schedules: ClassSchedule[]): CourseScheduleFormValues {
+  const first = schedules[0];
+  if (!first) return emptyCourseScheduleForm();
+  return { weekdays: schedules.map((item) => item.weekday), startTime: first.startTime, endTime: first.endTime, room: first.room ?? '', startDate: first.startDate, endDate: first.endDate };
+}
+
 export function validateClassScheduleForm(values: ClassScheduleFormValues): ClassScheduleFormErrors {
   const errors: ClassScheduleFormErrors = {};
   if (!isValidTime(values.startTime)) errors.startTime = 'Choose a valid start time.';
@@ -81,4 +87,8 @@ export function toCreateScheduleRequest(
     startDate: values.startDate,
     endDate: values.endDate,
   };
+}
+
+export function toScheduleGroupRequest(courseId: string, values: CourseScheduleFormValues, timezone: string): ScheduleGroupRequest {
+  return { courseId, weekdays: values.weekdays, startTime: values.startTime, endTime: values.endTime, room: values.room.trim() || null, startDate: values.startDate, endDate: values.endDate, timezone };
 }

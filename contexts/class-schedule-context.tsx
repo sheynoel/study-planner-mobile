@@ -15,6 +15,9 @@ import type {
   ClassScheduleFilters,
   CreateClassScheduleRequest,
   UpdateClassScheduleRequest,
+  ScheduleGroupRequest,
+  ScheduleGroupResponse,
+  UpsertScheduleExceptionRequest,
 } from '@/lib/api/class-schedule.types';
 import {
   createClassSchedule as createClassScheduleRequest,
@@ -22,6 +25,10 @@ import {
   getClassSchedule as getClassScheduleRequest,
   getClassSchedules,
   updateClassSchedule as updateClassScheduleRequest,
+  createScheduleGroup as createScheduleGroupRequest,
+  updateScheduleGroup as updateScheduleGroupRequest,
+  deleteScheduleGroup as deleteScheduleGroupRequest,
+  upsertScheduleException as upsertScheduleExceptionRequest,
 } from '@/lib/api/class-schedules';
 
 type ListStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -31,6 +38,10 @@ type ClassScheduleContextValue = {
   listError: string | null;
   listStatus: ListStatus;
   createSchedule: (request: CreateClassScheduleRequest) => Promise<ClassSchedule>;
+  createGroup: (request: ScheduleGroupRequest) => Promise<ScheduleGroupResponse['data']>;
+  updateGroup: (id: string, request: ScheduleGroupRequest) => Promise<ScheduleGroupResponse['data']>;
+  deleteGroup: (id: string) => Promise<void>;
+  upsertException: (id: string, request: UpsertScheduleExceptionRequest) => Promise<void>;
   deleteSchedule: (id: string) => Promise<void>;
   fetchSchedules: (filters?: ClassScheduleFilters) => Promise<ClassSchedule[]>;
   getCachedSchedule: (id: string) => ClassSchedule | undefined;
@@ -99,6 +110,30 @@ export function ClassScheduleProvider({ children }: PropsWithChildren) {
     return response.data.schedule;
   }, [loadCourseSchedules, runAuthenticated, upsert]);
 
+  const createGroup = useCallback(async (request: ScheduleGroupRequest) => {
+    const response = await runAuthenticated((token) => createScheduleGroupRequest(token, request));
+    response.data.schedules.forEach(upsert);
+    try { await loadCourseSchedules(request.courseId); } catch { /* Keep confirmed group. */ }
+    return response.data;
+  }, [loadCourseSchedules, runAuthenticated, upsert]);
+
+  const updateGroup = useCallback(async (id: string, request: ScheduleGroupRequest) => {
+    const response = await runAuthenticated((token) => updateScheduleGroupRequest(token, id, request));
+    setSchedules((current) => [...current.filter((item) => item.scheduleGroupId !== id), ...response.data.schedules]);
+    try { await loadCourseSchedules(request.courseId); } catch { /* Keep confirmed group. */ }
+    return response.data;
+  }, [loadCourseSchedules, runAuthenticated]);
+
+  const deleteGroup = useCallback(async (id: string) => {
+    await runAuthenticated((token) => deleteScheduleGroupRequest(token, id));
+    setSchedules((current) => current.filter((item) => item.scheduleGroupId !== id));
+  }, [runAuthenticated]);
+
+  const upsertException = useCallback(async (id: string, request: UpsertScheduleExceptionRequest) => {
+    await runAuthenticated((token) => upsertScheduleExceptionRequest(token, id, request));
+    await loadSchedule(id);
+  }, [loadSchedule, runAuthenticated]);
+
   const updateSchedule = useCallback(async (id: string, request: UpdateClassScheduleRequest) => {
     const response = await runAuthenticated((token) => updateClassScheduleRequest(token, id, request));
     upsert(response.data.schedule);
@@ -117,10 +152,10 @@ export function ClassScheduleProvider({ children }: PropsWithChildren) {
   );
 
   const value = useMemo(() => ({
-    schedules, listError, listStatus, createSchedule, deleteSchedule, fetchSchedules,
+    schedules, listError, listStatus, createSchedule, createGroup, updateGroup, deleteGroup, upsertException, deleteSchedule, fetchSchedules,
     getCachedSchedule, loadCourseSchedules, loadSchedule, updateSchedule,
   }), [
-    createSchedule, deleteSchedule, fetchSchedules, getCachedSchedule, listError, listStatus,
+    createSchedule, createGroup, updateGroup, deleteGroup, upsertException, deleteSchedule, fetchSchedules, getCachedSchedule, listError, listStatus,
     loadCourseSchedules, loadSchedule, schedules, updateSchedule,
   ]);
 

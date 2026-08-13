@@ -1,8 +1,9 @@
 import { ApiClientError, getApiClient } from '@/lib/api/api-client';
+import { normalizeCourse, normalizeCourses } from '@/lib/api/course-normalization';
 import type {
-  Course,
   CourseDetailResponse,
   CourseListResponse,
+  CourseResponse,
   CreateCourseRequest,
   CreateCourseResponse,
   DeleteCourseResponse,
@@ -12,32 +13,6 @@ import type {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
-}
-
-function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
-}
-
-function isCourse(value: unknown): value is Course {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.id === 'string' &&
-    typeof value.userId === 'string' &&
-    typeof value.name === 'string' &&
-    isNullableString(value.code) &&
-    isNullableString(value.description) &&
-    isNullableString(value.instructor) &&
-    isNullableString(value.room) &&
-    typeof value.color === 'string' &&
-    /^#[0-9a-fA-F]{6}$/.test(value.color) &&
-    typeof value.createdAt === 'string' &&
-    !Number.isNaN(Date.parse(value.createdAt)) &&
-    typeof value.updatedAt === 'string' &&
-    !Number.isNaN(Date.parse(value.updatedAt))
-  );
 }
 
 function readData(value: unknown): Record<string, unknown> | null {
@@ -59,17 +34,18 @@ function coursePath(id: string): string {
   return `/courses/${encodeURIComponent(id)}`;
 }
 
-export async function getCourses(accessToken: string): Promise<CourseListResponse> {
-  const response = await getApiClient().get<unknown>('/courses', {
+export async function getCourses(accessToken: string, includeArchived = false): Promise<CourseListResponse> {
+  const response = await getApiClient().get<unknown>(includeArchived ? '/courses?includeArchived=true' : '/courses', {
     headers: bearerHeaders(accessToken),
   });
   const data = readData(response);
+  const courses = data ? normalizeCourses(data.courses) : null;
 
-  if (!data || !Array.isArray(data.courses) || !data.courses.every(isCourse)) {
+  if (!courses) {
     return invalidCourseResponse();
   }
 
-  return { data: { courses: data.courses } };
+  return { data: { courses } };
 }
 
 export async function createCourse(
@@ -81,12 +57,13 @@ export async function createCourse(
     headers: bearerHeaders(accessToken),
   });
   const data = readData(response);
+  const course = data ? normalizeCourse(data.course) : null;
 
-  if (!data || !isCourse(data.course)) {
+  if (!course) {
     return invalidCourseResponse();
   }
 
-  return { data: { course: data.course } };
+  return { data: { course } };
 }
 
 export async function getCourse(
@@ -97,12 +74,13 @@ export async function getCourse(
     headers: bearerHeaders(accessToken),
   });
   const data = readData(response);
+  const course = data ? normalizeCourse(data.course) : null;
 
-  if (!data || !isCourse(data.course)) {
+  if (!course) {
     return invalidCourseResponse();
   }
 
-  return { data: { course: data.course } };
+  return { data: { course } };
 }
 
 export async function updateCourse(
@@ -116,12 +94,13 @@ export async function updateCourse(
     { headers: bearerHeaders(accessToken) },
   );
   const data = readData(response);
+  const course = data ? normalizeCourse(data.course) : null;
 
-  if (!data || !isCourse(data.course)) {
+  if (!course) {
     return invalidCourseResponse();
   }
 
-  return { data: { course: data.course } };
+  return { data: { course } };
 }
 
 export async function deleteCourse(
@@ -138,4 +117,12 @@ export async function deleteCourse(
   }
 
   return { data: { message: data.message } };
+}
+
+export async function setCourseArchived(accessToken: string, id: string, archived: boolean): Promise<CourseResponse> {
+  const response = await getApiClient().patch<unknown, Record<string, never>>(`${coursePath(id)}/${archived ? 'archive' : 'unarchive'}`, {}, { headers: bearerHeaders(accessToken) });
+  const data = readData(response);
+  const course = data ? normalizeCourse(data.course) : null;
+  if (!course) return invalidCourseResponse();
+  return { data: { course } };
 }

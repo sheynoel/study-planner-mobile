@@ -12,14 +12,16 @@ import {
   toCreateCourseRequest,
 } from '@/lib/courses/course-form';
 import { courseRoutes } from '@/lib/courses/routes';
-import { toCreateScheduleRequest, type ClassScheduleFormValues } from '@/lib/class-schedules/class-schedule-form';
+import { toScheduleGroupRequest, type CourseScheduleFormValues } from '@/lib/class-schedules/class-schedule-form';
+import { useAuth } from '@/contexts/auth-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import { createCourseWithSchedules } from '@/lib/courses/course-creation';
 import { classScheduleRoutes } from '@/lib/class-schedules/routes';
 
 export default function AddCourseScreen() {
   const { createCourse } = useCourses();
-  const { createSchedule } = useClassSchedules();
+  const { createGroup } = useClassSchedules();
+  const { user } = useAuth();
 
   function closeCourseCreation() {
     if (router.canGoBack()) {
@@ -30,14 +32,15 @@ export default function AddCourseScreen() {
     router.replace(courseRoutes.list);
   }
 
-  async function handleCreate(values: CourseFormValues, schedules: ClassScheduleFormValues[]) {
+  async function handleCreate(values: CourseFormValues, schedules: CourseScheduleFormValues[]) {
+    const timezone = user?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
     const result = await createCourseWithSchedules(
       () => createCourse(toCreateCourseRequest(values)),
       schedules,
-      (courseId, schedule) => createSchedule(toCreateScheduleRequest(courseId, schedule)),
+      (courseId, schedule) => createGroup(toScheduleGroupRequest(courseId, schedule, timezone)),
     );
     if (result.scheduleError) {
-      Alert.alert('Course created; schedule needs attention', `${result.createdScheduleCount} of ${schedules.length} class meetings were added. The course is safe. Review its schedules to add the remaining meeting.\n\n${getApiErrorMessage(result.scheduleError)}`);
+      Alert.alert('Course created; schedule needs attention', `${result.createdScheduleCount} of ${schedules.length} schedule groups were added. The course is safe. Review its schedules to add the remaining group.\n\n${getApiErrorMessage(result.scheduleError)}`);
       router.replace(classScheduleRoutes.courseList(result.course.id));
       return;
     }

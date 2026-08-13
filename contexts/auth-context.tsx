@@ -16,6 +16,7 @@ import {
   logout as logoutRequest,
   refresh as refreshRequest,
   register as registerRequest,
+  updateTimezone as updateTimezoneRequest,
 } from '@/lib/api/auth';
 import type { LoginRequest, RegisterRequest, User } from '@/lib/api/auth.types';
 import {
@@ -87,22 +88,33 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const validateStoredSession = useCallback(async (stored: StoredAuthSession) => {
     try {
       const response = await getCurrentUser(stored.accessToken);
-      const validated = { ...stored, user: response.data.user };
+      let confirmedUser = response.data.user;
+      if (!confirmedUser.timezone) {
+        const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (deviceTimezone) {
+          try { confirmedUser = (await updateTimezoneRequest(stored.accessToken, deviceTimezone)).data.user; }
+          catch { /* A timezone sync failure does not invalidate a confirmed session. */ }
+        }
+      }
+      const validated = { ...stored, user: confirmedUser };
       await saveAuthSession(validated);
       publishSession(validated);
       setSessionError(null);
     } catch (error) {
       const decision = error instanceof ApiClientError
         ? classifySessionRestorationFailure(error)
-        : 'offline';
+        : 'error';
       if (decision === 'invalidate') {
         await invalidateSession();
         return;
       }
-      publishSession(stored, 'authenticated-offline');
-      setSessionError(error instanceof ApiClientError && (error.kind === 'network' || error.kind === 'timeout')
-        ? 'You are offline. Your saved session will be checked again when the API is reachable.'
-        : `Your saved session could not be validated. ${getApiErrorMessage(error)}`);
+      if (decision === 'offline') {
+        publishSession(stored, 'authenticated-offline');
+        setSessionError('You are offline. Your saved session will be checked again when the API is reachable.');
+        return;
+      }
+      publishSession(stored, 'authenticated');
+      setSessionError(`Your saved session could not be validated. ${getApiErrorMessage(error)}`);
     }
   }, [invalidateSession, publishSession]);
 
@@ -154,6 +166,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await saveAuthSession(session);
     publishSession(session);
     setSessionError(null);
+    if (!response.data.user.timezone) {
+      const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (deviceTimezone) void updateTimezoneRequest(response.data.accessToken, deviceTimezone)
+        .then(async ({ data }) => {
+          const updated = { ...session, user: data.user };
+          await saveAuthSession(updated); publishSession(updated);
+        })
+        .catch(() => undefined);
+    }
   }, [publishSession]);
 
   const login = useCallback(

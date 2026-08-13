@@ -22,6 +22,20 @@ export type ClassSchedule = {
   endDate: string;
   createdAt: string;
   updatedAt: string;
+  scheduleGroupId: string | null;
+  timezone: string;
+  courseArchived: boolean;
+  holidayDates: string[];
+  exceptions: ClassScheduleException[];
+};
+
+export type ClassScheduleException = {
+  id: string;
+  date: string;
+  cancelled: boolean;
+  startTimeOverride: string | null;
+  endTimeOverride: string | null;
+  roomOverride: string | null;
 };
 
 export type CreateClassScheduleRequest = {
@@ -35,6 +49,23 @@ export type CreateClassScheduleRequest = {
 };
 
 export type UpdateClassScheduleRequest = Partial<CreateClassScheduleRequest>;
+
+export type ScheduleGroupRequest = {
+  courseId: string;
+  weekdays: Weekday[];
+  startTime: string;
+  endTime: string;
+  room?: string | null;
+  startDate: string;
+  endDate: string;
+  timezone: string;
+};
+
+export type ScheduleGroupResponse = { data: { groupId: string; schedules: ClassSchedule[] } };
+export type UpsertScheduleExceptionRequest = {
+  date: string; cancelled?: boolean; startTimeOverride?: string;
+  endTimeOverride?: string; roomOverride?: string | null;
+};
 
 export type ClassScheduleFilters = {
   courseId?: string;

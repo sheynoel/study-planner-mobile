@@ -13,6 +13,7 @@ import { useCourses } from '@/contexts/course-context';
 import { getApiErrorMessage } from '@/lib/api/api-client';
 import type { Course } from '@/lib/api/course.types';
 import { classScheduleRoutes } from '@/lib/class-schedules/routes';
+import { groupClassSchedules } from '@/lib/class-schedules/schedule-groups';
 
 export default function CourseScheduleListScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
@@ -34,6 +35,7 @@ export default function CourseScheduleListScreen() {
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
   const error = listError ?? courseError;
   const loading = listStatus === 'idle' || listStatus === 'loading';
+  const groups = groupClassSchedules(schedules);
 
   return (
     <ThemedView style={styles.screen}>
@@ -43,8 +45,8 @@ export default function CourseScheduleListScreen() {
         {error && !course ? <ErrorState message={error} onRetry={() => void refresh()} /> : null}
         {listStatus === 'error' && course && schedules.length === 0 ? <ErrorState message={error ?? 'Class schedule could not be loaded.'} onRetry={() => void refresh()} /> : null}
         {listStatus === 'success' && course ? (
-          schedules.length === 0 ? <EmptyState actionLabel="Add Class" description="Add this course's first weekly meeting." onAction={() => router.push(classScheduleRoutes.add(course.id))} title="No class meetings" /> :
-          <ScrollView contentContainerStyle={styles.content}>{schedules.map((schedule) => <ClassScheduleCard course={course} key={schedule.id} onPress={() => router.push(classScheduleRoutes.details(schedule.id))} schedule={schedule} />)}</ScrollView>
+          groups.length === 0 ? <EmptyState actionLabel="Add Class" description="Add this course's first weekly meeting." onAction={() => router.push(classScheduleRoutes.add(course.id))} title="No class meetings" /> :
+          <ScrollView contentContainerStyle={styles.content}>{groups.map((group) => <ClassScheduleCard course={course} group={group} key={group.id} onPress={() => router.push(classScheduleRoutes.details(group.schedules[0].id))} />)}</ScrollView>
         ) : null}
         {listStatus === 'success' && schedules.length > 0 && courseId ? <FloatingActionButton bottom={24} label="Add class" onPress={() => router.push(classScheduleRoutes.add(courseId))} /> : null}
       </SafeAreaView>

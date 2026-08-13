@@ -4,6 +4,7 @@ export type User = {
   email: string;
   createdAt: string;
   updatedAt: string;
+  timezone: string | null;
 };
 
 export type RegisterRequest = {

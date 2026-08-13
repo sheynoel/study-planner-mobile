@@ -28,6 +28,7 @@ type ApiErrorEnvelope = {
     code: string;
     message: string;
     details?: string[];
+    conflicts?: unknown;
   };
 };
 
@@ -38,6 +39,7 @@ export class ApiClientError extends Error {
     readonly status?: number,
     readonly code?: string,
     readonly details?: readonly string[],
+    readonly conflicts?: unknown,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -174,6 +176,7 @@ export class ApiClient {
         response.status,
         errorEnvelope?.error.code,
         errorEnvelope?.error.details,
+        errorEnvelope?.error.conflicts,
       );
     }
 
@@ -224,6 +227,7 @@ export class ApiClient {
           code: candidate.code,
           message: candidate.message,
           details: candidate.details,
+          conflicts: candidate.conflicts,
         },
       };
     } catch {
@@ -268,6 +272,19 @@ export function getApiClient(): ApiClient {
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof ApiClientError && error.details?.length) {
     return `${error.message} ${error.details.join(' ')}`;
+  }
+
+  if (error instanceof ApiClientError && Array.isArray(error.conflicts)) {
+    const lines = error.conflicts.flatMap((group) => {
+      if (!group || typeof group !== 'object') return [];
+      const value = group as { weekday?: unknown; date?: unknown; conflicts?: unknown; courseName?: unknown; startTime?: unknown; endTime?: unknown };
+      if (typeof value.weekday === 'string' && Array.isArray(value.conflicts) && value.conflicts.length) {
+        return value.conflicts.flatMap((conflict) => conflict && typeof conflict === 'object' ? [`${value.weekday}: ${String((conflict as { courseName?: unknown }).courseName ?? 'Class')} (${String((conflict as { startTime?: unknown }).startTime ?? '')}–${String((conflict as { endTime?: unknown }).endTime ?? '')})`] : []);
+      }
+      if (typeof value.date === 'string') return [`${value.date}: ${String(value.courseName ?? 'Class')} (${String(value.startTime ?? '')}–${String(value.endTime ?? '')})`];
+      return [];
+    });
+    if (lines.length) return `${error.message}\n${lines.join('\n')}`;
   }
 
   return error instanceof Error ? error.message : 'An unexpected error occurred.';

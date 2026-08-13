@@ -7,27 +7,11 @@ import type {
   RegisterRequest,
   RegisterResponse,
   RefreshResponse,
-  User,
 } from '@/lib/api/auth.types';
+import { normalizeUser } from '@/lib/api/auth-normalization';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
-}
-
-function isUser(value: unknown): value is User {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    typeof value.email === 'string' &&
-    typeof value.createdAt === 'string' &&
-    !Number.isNaN(Date.parse(value.createdAt)) &&
-    typeof value.updatedAt === 'string' &&
-    !Number.isNaN(Date.parse(value.updatedAt))
-  );
 }
 
 function readData(value: unknown): Record<string, unknown> | null {
@@ -47,11 +31,12 @@ export async function register(request: RegisterRequest): Promise<RegisterRespon
   });
   const data = readData(response);
 
-  if (!data || !isUser(data.user)) {
+  const user = data ? normalizeUser(data.user) : null;
+  if (!user) {
     return invalidAuthResponse();
   }
 
-  return { data: { user: data.user } };
+  return { data: { user } };
 }
 
 export async function login(request: LoginRequest): Promise<LoginResponse> {
@@ -65,7 +50,7 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
     typeof data.refreshToken !== 'string' ||
     data.refreshToken.length === 0 ||
     data.tokenType !== 'Bearer' ||
-    !isUser(data.user)
+    !normalizeUser(data.user)
   ) {
     return invalidAuthResponse();
   }
@@ -75,7 +60,7 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       tokenType: data.tokenType,
-      user: data.user,
+      user: normalizeUser(data.user)!,
     },
   };
 }
@@ -86,11 +71,18 @@ export async function getCurrentUser(accessToken: string): Promise<CurrentUserRe
   });
   const data = readData(response);
 
-  if (!data || !isUser(data.user)) {
+  const user = data ? normalizeUser(data.user) : null;
+  if (!user) {
     return invalidAuthResponse();
   }
 
-  return { data: { user: data.user } };
+  return { data: { user } };
+}
+
+export async function updateTimezone(accessToken: string, timezone: string): Promise<CurrentUserResponse> {
+  const response = await getApiClient().patch<unknown, { timezone: string }>('/auth/timezone', { timezone }, { headers: { Authorization: `Bearer ${accessToken}` } });
+  const data = readData(response); const user = data ? normalizeUser(data.user) : null; if (!user) return invalidAuthResponse();
+  return { data: { user } };
 }
 
 export async function refresh(refreshToken: string): Promise<RefreshResponse> {
@@ -103,8 +95,8 @@ function loginResponse(response: unknown): LoginResponse {
   const data = readData(response);
   if (!data || typeof data.accessToken !== 'string' || !data.accessToken ||
     typeof data.refreshToken !== 'string' || !data.refreshToken ||
-    data.tokenType !== 'Bearer' || !isUser(data.user)) return invalidAuthResponse();
-  return { data: { accessToken: data.accessToken, refreshToken: data.refreshToken, tokenType: 'Bearer', user: data.user } };
+    data.tokenType !== 'Bearer' || !normalizeUser(data.user)) return invalidAuthResponse();
+  return { data: { accessToken: data.accessToken, refreshToken: data.refreshToken, tokenType: 'Bearer', user: normalizeUser(data.user)! } };
 }
 
 export async function logout(refreshToken: string): Promise<LogoutResponse> {

@@ -3,11 +3,12 @@ export type SessionRestorationFailure = {
   status?: number;
 };
 
-export type SessionRestorationDecision = 'offline' | 'invalidate';
+export type SessionRestorationDecision = 'offline' | 'invalidate' | 'error';
 
 export function classifySessionRestorationFailure(
   failure: SessionRestorationFailure,
 ): SessionRestorationDecision {
-  if (failure.status === 401) return 'invalidate';
-  return 'offline';
+  if (failure.kind === 'network' || failure.kind === 'timeout') return 'offline';
+  if (failure.kind === 'http' && failure.status === 401) return 'invalidate';
+  return 'error';
 }

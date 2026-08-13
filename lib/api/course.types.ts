@@ -9,6 +9,8 @@ export type Course = {
   color: string;
   createdAt: string;
   updatedAt: string;
+  semesterId: string | null;
+  archivedAt: string | null;
 };
 
 export type CreateCourseRequest = {
