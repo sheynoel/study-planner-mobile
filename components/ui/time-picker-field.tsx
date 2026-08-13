@@ -1,6 +1,6 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -16,17 +16,26 @@ export function TimePickerField({ disabled = false, error, hideLabel = false, la
   const { colors, resolvedMode } = useAppearance();
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState(() => storedTimeToDate(value) ?? defaultTime());
-  useEffect(() => { if (visible) setDraft(storedTimeToDate(value) ?? defaultTime()); }, [value, visible]);
   const displayValue = value ? formatScheduleTime(value) : placeholder;
-  const handleChange = (event: DateTimePickerEvent, selected?: Date) => { if (event.type === 'dismissed') return; if (selected) setDraft(selected); };
+  const open = () => { setDraft(storedTimeToDate(value) ?? defaultTime()); setVisible(true); };
+  const handleChange = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      setVisible(false);
+      if (event.type !== 'dismissed' && selected) onChange(dateToStoredTime(selected));
+      return;
+    }
+    if (event.type !== 'dismissed' && selected) setDraft(selected);
+  };
+  const picker = <DateTimePicker display={Platform.OS === 'ios' ? 'spinner' : 'default'} is24Hour={false} minuteInterval={5} mode="time" onChange={handleChange} themeVariant={resolvedMode} value={draft} />;
 
   return <View style={styles.field}>
     {!hideLabel ? <ThemedText style={styles.label}>{label}</ThemedText> : null}
-    <Pressable accessibilityLabel={`${label}, ${displayValue}`} accessibilityRole="button" disabled={disabled} onPress={() => setVisible(true)} style={({ pressed }) => [styles.trigger, { backgroundColor: colors.surface, borderColor: error ? colors.danger : colors.border }, disabled ? styles.disabled : undefined, pressed ? styles.pressed : undefined]}><ThemedText numberOfLines={1} style={[styles.value, !value ? { color: colors.textMuted } : undefined]}>{displayValue}</ThemedText><Ionicons color={disabled ? colors.textMuted : colors.primary} name="time-outline" size={18} /></Pressable>
+    <Pressable accessibilityLabel={`${label}, ${displayValue}`} accessibilityRole="button" disabled={disabled} onPress={open} style={({ pressed }) => [styles.trigger, { backgroundColor: colors.surface, borderColor: error ? colors.danger : colors.border }, disabled ? styles.disabled : undefined, pressed ? styles.pressed : undefined]}><ThemedText numberOfLines={1} style={[styles.value, !value ? { color: colors.textMuted } : undefined]}>{displayValue}</ThemedText><Ionicons color={disabled ? colors.textMuted : colors.primary} name="time-outline" size={18} /></Pressable>
     {error ? <ThemedText style={[styles.error, { color: colors.dangerText }]}>{error}</ThemedText> : null}
-    <AppBottomSheet initialSnap={Platform.OS === 'ios' ? 0.58 : 0.5} onClose={() => setVisible(false)} title={pickerTitle ?? `Choose ${label.toLowerCase()}`} visible={visible} footer={<View style={styles.footer}><Pressable onPress={() => setVisible(false)} style={styles.footerAction}><ThemedText style={{ color: colors.textSecondary, fontWeight: '700' }}>Cancel</ThemedText></Pressable><Pressable onPress={() => { onChange(dateToStoredTime(draft)); setVisible(false); }} style={[styles.done, { backgroundColor: colors.primary }]}><ThemedText style={{ color: colors.primaryText, fontWeight: '700' }}>Set time</ThemedText></Pressable></View>}>
-      <View style={styles.pickerContent}><ThemedText style={[styles.preview, { color: colors.primary }]}>{draft.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true, minute: '2-digit' })}</ThemedText><DateTimePicker display={Platform.OS === 'ios' ? 'spinner' : 'default'} is24Hour={false} minuteInterval={5} mode="time" onChange={handleChange} themeVariant={resolvedMode} value={draft} /></View>
-    </AppBottomSheet>
+    {Platform.OS === 'android' && visible ? picker : null}
+    {Platform.OS === 'ios' ? <AppBottomSheet initialSnap={0.58} onClose={() => setVisible(false)} title={pickerTitle ?? `Choose ${label.toLowerCase()}`} visible={visible} footer={<View style={styles.footer}><Pressable onPress={() => setVisible(false)} style={styles.footerAction}><ThemedText style={{ color: colors.textSecondary, fontWeight: '700' }}>Cancel</ThemedText></Pressable><Pressable onPress={() => { onChange(dateToStoredTime(draft)); setVisible(false); }} style={[styles.done, { backgroundColor: colors.primary }]}><ThemedText style={{ color: colors.primaryText, fontWeight: '700' }}>Set time</ThemedText></Pressable></View>}>
+      <View style={styles.pickerContent}><ThemedText style={[styles.preview, { color: colors.primary }]}>{draft.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true, minute: '2-digit' })}</ThemedText>{picker}</View>
+    </AppBottomSheet> : null}
   </View>;
 }
 

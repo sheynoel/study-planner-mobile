@@ -1,6 +1,6 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -18,14 +18,20 @@ export function TimeRangeField({ endError, endTime, onEndChange, onStartChange, 
   const { colors, resolvedMode } = useAppearance();
   const [activePicker, setActivePicker] = useState<ActivePicker>(null);
   const [draft, setDraft] = useState(() => storedTimeToDate(startTime) ?? new Date());
-  const activeValue = activePicker === 'end' ? endTime : startTime;
-
-  useEffect(() => {
-    if (activePicker) setDraft(storedTimeToDate(activeValue) ?? roundedNow());
-  }, [activePicker, activeValue]);
-
-  function open(which: Exclude<ActivePicker, null>) { setActivePicker(which); }
+  function open(which: Exclude<ActivePicker, null>) {
+    setDraft(storedTimeToDate(which === 'end' ? endTime : startTime) ?? roundedNow());
+    setActivePicker(which);
+  }
   function handleChange(event: DateTimePickerEvent, selected?: Date) {
+    if (Platform.OS === 'android') {
+      const selectedPicker = activePicker;
+      setActivePicker(null);
+      if (event.type === 'dismissed' || !selected) return;
+      const value = dateToStoredTime(selected);
+      if (selectedPicker === 'start') onStartChange(value);
+      if (selectedPicker === 'end') onEndChange(value);
+      return;
+    }
     if (event.type !== 'dismissed' && selected) setDraft(selected);
   }
   function commit() {
@@ -34,21 +40,23 @@ export function TimeRangeField({ endError, endTime, onEndChange, onStartChange, 
     if (activePicker === 'end') onEndChange(value);
     setActivePicker(null);
   }
+  const picker = <DateTimePicker display={Platform.OS === 'ios' ? 'spinner' : 'default'} is24Hour={false} minuteInterval={5} mode="time" onChange={handleChange} themeVariant={resolvedMode} value={draft} />;
 
   return <View style={styles.row}>
     <TimeTrigger error={startError} label="Start time" onPress={() => open('start')} value={startTime} />
     <TimeTrigger error={endError} label="End time" onPress={() => open('end')} value={endTime} />
-    <AppBottomSheet
+    {Platform.OS === 'android' && activePicker ? picker : null}
+    {Platform.OS === 'ios' ? <AppBottomSheet
       footer={<View style={styles.footer}><Pressable onPress={() => setActivePicker(null)} style={styles.footerAction}><ThemedText style={{ color: colors.textSecondary, fontWeight: '700' }}>Cancel</ThemedText></Pressable><Pressable onPress={commit} style={[styles.done, { backgroundColor: colors.primary }]}><ThemedText style={{ color: colors.primaryText, fontWeight: '700' }}>Set time</ThemedText></Pressable></View>}
-      initialSnap={Platform.OS === 'ios' ? 0.58 : 0.5}
+      initialSnap={0.58}
       onClose={() => setActivePicker(null)}
       title={`Choose ${activePicker ?? 'start'} time`}
       visible={activePicker !== null}>
       <View style={styles.pickerContent}>
         <ThemedText style={[styles.preview, { color: colors.primary }]}>{draft.toLocaleTimeString(undefined, { hour: 'numeric', hour12: true, minute: '2-digit' })}</ThemedText>
-        <DateTimePicker display={Platform.OS === 'ios' ? 'spinner' : 'default'} is24Hour={false} minuteInterval={5} mode="time" onChange={handleChange} themeVariant={resolvedMode} value={draft} />
+        {picker}
       </View>
-    </AppBottomSheet>
+    </AppBottomSheet> : null}
   </View>;
 }
 

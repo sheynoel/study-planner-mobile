@@ -40,7 +40,14 @@ export async function deleteScheduleGroup(accessToken: string, id: string): Prom
 }
 
 export async function upsertScheduleException(accessToken: string, id: string, request: UpsertScheduleExceptionRequest) {
-  return getApiClient().post<unknown, UpsertScheduleExceptionRequest>(`${schedulePath(id)}/exceptions`, request, { headers: bearerHeaders(accessToken) });
+  return getApiClient().post<unknown, UpsertScheduleExceptionRequest>(`${schedulePath(id)}/exceptions`, request, { acceptedStatuses: [201], headers: bearerHeaders(accessToken) });
+}
+
+export async function deleteScheduleException(accessToken: string, id: string, date: string): Promise<DeleteClassScheduleResponse> {
+  const response = await getApiClient().delete<unknown>(`${schedulePath(id)}/exceptions/${encodeURIComponent(date)}`, { headers: bearerHeaders(accessToken) });
+  const data = readData(response);
+  if (!data || typeof data.message !== 'string') return invalidResponse();
+  return { data: { message: data.message } };
 }
 
 function readData(value: unknown): Record<string, unknown> | null {

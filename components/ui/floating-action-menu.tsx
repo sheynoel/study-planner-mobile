@@ -53,14 +53,13 @@ export function FloatingActionMenu({ aboveBottomBar = true, actions }: { aboveBo
 
   const popupTransform = [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }];
   return <>
-    <Fab bottom={bottom} colors={colors} expanded={false} onPress={open} />
+    <Fab bottom={bottom} colors={colors} expanded={visible} onPress={visible ? () => close() : open} />
     <Modal animationType="none" onRequestClose={() => close()} statusBarTranslucent transparent visible={visible}>
       <View onTouchMove={() => close()} style={styles.overlay}>
         <Pressable accessibilityLabel="Close quick add" accessibilityRole="button" onPress={() => close()} style={StyleSheet.absoluteFill} />
         <Animated.View accessibilityLabel="Quick add options" style={[styles.popup, { backgroundColor: colors.surface, borderColor: colors.border, bottom: bottom + 58, opacity: progress, transform: popupTransform }, Shadows]}>
           {(activeActions ?? actions).map((action) => <Pressable accessibilityLabel={action.accessibilityLabel ?? action.label} accessibilityRole="button" key={action.label} onPress={() => choose(action)} style={({ pressed }) => [styles.option, pressed ? { backgroundColor: colors.surfaceSubtle } : undefined]}><Ionicons color={colors.primary} name={action.icon} size={17} /><ThemedText numberOfLines={1} style={styles.optionLabel}>{action.label}</ThemedText>{action.children?.length ? <Ionicons color={colors.textSecondary} name="chevron-forward" size={14} /> : null}</Pressable>)}
         </Animated.View>
-        <Pressable accessibilityLabel="Close quick add" accessibilityRole="button" accessibilityState={{ expanded: true }} onPress={() => close()} style={({ pressed }) => [styles.fab, { backgroundColor: colors.primary, bottom }, pressed ? styles.pressed : undefined]}><Ionicons color={colors.primaryText} name="add" size={25} /></Pressable>
       </View>
     </Modal>
   </>;
