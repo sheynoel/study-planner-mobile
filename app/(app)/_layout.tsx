@@ -10,6 +10,10 @@ import { HomeProvider } from '@/contexts/home-context';
 import { NoteProvider } from '@/contexts/note-context';
 import { NotificationPreferencesProvider } from '@/contexts/notification-preferences-context';
 
+export const unstable_settings = {
+  anchor: 'index',
+};
+
 export default function AppLayout() {
   return (
     <NotificationPreferencesProvider>
@@ -22,6 +26,7 @@ export default function AppLayout() {
                 <NoteProvider>
                   <HomeProvider>
                     <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="index" />
                       <Stack.Screen name="courses/new" options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
                       <Stack.Screen name="tasks/new" options={{ animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false, presentation: 'transparentModal' }} />
                       <Stack.Screen name="calendar/new" options={{ animation: 'fade', contentStyle: { backgroundColor: 'transparent' }, gestureEnabled: false, presentation: 'transparentModal' }} />

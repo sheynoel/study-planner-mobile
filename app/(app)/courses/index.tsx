@@ -14,6 +14,7 @@ import { useCourses } from '@/contexts/course-context';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { courseRoutes } from '@/lib/courses/routes';
 import { fileRoutes } from '@/lib/files/routes';
+import { getCourseListView } from '@/lib/courses/course-list-state';
 
 export default function CourseListScreen() {
   const { courses, listError, listStatus, loadCourses } = useCourses();
@@ -23,15 +24,16 @@ export default function CourseListScreen() {
   const taskCounts = useMemo(() => countByCourse(dashboard.tasks.filter((task) => task.status !== 'COMPLETED')), [dashboard.tasks]);
   const cardWidth = (viewportWidth - DesignTokens.layout.screenPadding * 2 - DesignTokens.spacing.sm) / 2;
   const refresh = useCallback(async () => { await Promise.all([loadCourses(), refreshDashboard()]); }, [loadCourses, refreshDashboard]);
+  const listView = getCourseListView(listStatus, courses.length);
   useFocusEffect(useCallback(() => { void refresh().catch(() => undefined); }, [refresh]));
 
   return <AppScreen footer={<AppSectionTabs active="courses" />}>
     <AppHeader onRightAction={() => router.push(courseRoutes.add)} rightActionIcon="add" rightActionLabel="Add Course" title="Courses" />
-    {listStatus === 'idle' || listStatus === 'loading' ? <LoadingSkeleton rows={4} /> : null}
-    {listStatus === 'error' ? <ErrorState message={listError ?? 'Your courses could not be loaded.'} onRetry={() => void refresh().catch(() => undefined)} /> : null}
-    {listStatus === 'success' ? <ScrollView contentContainerStyle={styles.content}>
+    {listView === 'loading' ? <LoadingSkeleton rows={4} /> : null}
+    {listView === 'error' ? <ErrorState message={listError ?? 'Your courses could not be loaded.'} onRetry={() => void refresh().catch(() => undefined)} /> : null}
+    {listView === 'empty' || listView === 'populated' ? <ScrollView contentContainerStyle={styles.content}>
       <PersonalLibraryCard onPress={() => router.push(fileRoutes.personal)} />
-      {courses.length ? <View style={styles.grid}>{courses.map((course) => <CourseFolderCard course={course} key={course.id} onPress={() => router.push(courseRoutes.details(course.id))} taskCount={taskCounts.get(course.id) ?? 0} width={cardWidth} />)}</View> : <EmptyState actionLabel="Add Course" description="Create your first course to organize your semester." onAction={() => router.push(courseRoutes.add)} title="No courses yet" />}
+      {listView === 'populated' ? <View style={styles.grid}>{courses.map((course) => <CourseFolderCard course={course} key={course.id} onPress={() => router.push(courseRoutes.details(course.id))} taskCount={taskCounts.get(course.id) ?? 0} width={cardWidth} />)}</View> : <EmptyState actionLabel="Add Course" description="Create your first course to organize your semester." onAction={() => router.push(courseRoutes.add)} title="No courses yet" />}
     </ScrollView> : null}
   </AppScreen>;
 }

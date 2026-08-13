@@ -6,6 +6,7 @@ import type {
   LogoutResponse,
   RegisterRequest,
   RegisterResponse,
+  RefreshResponse,
   User,
 } from '@/lib/api/auth.types';
 
@@ -61,6 +62,8 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
     !data ||
     typeof data.accessToken !== 'string' ||
     data.accessToken.length === 0 ||
+    typeof data.refreshToken !== 'string' ||
+    data.refreshToken.length === 0 ||
     data.tokenType !== 'Bearer' ||
     !isUser(data.user)
   ) {
@@ -70,6 +73,7 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
   return {
     data: {
       accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
       tokenType: data.tokenType,
       user: data.user,
     },
@@ -89,16 +93,28 @@ export async function getCurrentUser(accessToken: string): Promise<CurrentUserRe
   return { data: { user: data.user } };
 }
 
-export async function logout(accessToken: string): Promise<LogoutResponse> {
-  const response = await getApiClient().post<unknown>('/auth/logout', undefined, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function refresh(refreshToken: string): Promise<RefreshResponse> {
+  return loginResponse(await getApiClient().post<unknown, { refreshToken: string }>(
+    '/auth/refresh', { refreshToken },
+  ));
+}
+
+function loginResponse(response: unknown): LoginResponse {
+  const data = readData(response);
+  if (!data || typeof data.accessToken !== 'string' || !data.accessToken ||
+    typeof data.refreshToken !== 'string' || !data.refreshToken ||
+    data.tokenType !== 'Bearer' || !isUser(data.user)) return invalidAuthResponse();
+  return { data: { accessToken: data.accessToken, refreshToken: data.refreshToken, tokenType: 'Bearer', user: data.user } };
+}
+
+export async function logout(refreshToken: string): Promise<LogoutResponse> {
+  const response = await getApiClient().post<unknown, { refreshToken: string }>('/auth/logout', { refreshToken });
   const data = readData(response);
 
   if (
     !data ||
     typeof data.message !== 'string' ||
-    data.tokenInvalidation !== 'client-managed'
+    data.tokenInvalidation !== 'server-revoked'
   ) {
     return invalidAuthResponse();
   }

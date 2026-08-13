@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "npm run test:file-filters && npm run test:material-filters && npm run test:task-filters && npm run test:task-form && npm run test:note-form && npm run test:calendar-display && npm run test:calendar-quick-add && npm run test:dashboard && npm run test:home-dashboard && npm run test:notification-preferences && npm run test:course-creation",
+    "test": "npm run test:file-filters && npm run test:material-filters && npm run test:task-filters && npm run test:task-form && npm run test:note-form && npm run test:calendar-display && npm run test:calendar-quick-add && npm run test:dashboard && npm run test:home-dashboard && npm run test:notification-preferences && npm run test:course-creation && npm run test:course-list-state && npm run test:single-flight && npm run test:session-restoration",
     "test:file-filters": "node --test --experimental-strip-types lib/files/file-filters.test.mjs",
     "test:material-filters": "node --test --experimental-strip-types lib/files/material-filters.test.mjs",
     "test:task-filters": "node --test --experimental-strip-types lib/tasks/task-filters.test.mjs",
@@ -20,7 +20,10 @@
     "test:dashboard": "node --test --experimental-strip-types lib/dashboard/dashboard-data.test.mjs",
     "test:home-dashboard": "node --test --experimental-strip-types lib/dashboard/home-dashboard.test.mjs",
     "test:notification-preferences": "node --test --experimental-strip-types lib/notifications/notification-preferences.test.mjs",
-    "test:course-creation": "node --test --experimental-strip-types lib/courses/course-creation.test.mjs"
+    "test:course-creation": "node --test --experimental-strip-types lib/courses/course-creation.test.mjs",
+    "test:course-list-state": "node --test --experimental-strip-types lib/courses/course-list-state.test.mjs",
+    "test:single-flight": "node --test --experimental-strip-types lib/auth/single-flight.test.mjs",
+    "test:session-restoration": "node --test --experimental-strip-types lib/auth/session-restoration.test.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

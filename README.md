@@ -101,9 +101,10 @@ Start the backend first, then start Expo. Reload the application after changing 
 ### Authentication flow
 
 - Registration validates the form, calls `POST /auth/register`, then signs in with the submitted credentials because registration does not issue a token.
-- Login saves the returned access token in Expo SecureStore on Android and iOS. Expo web uses browser local storage because SecureStore is not available on web.
-- Startup reads the saved token and calls `GET /auth/me`. A valid token restores the protected session; a rejected token is deleted.
-- Logout attempts `POST /auth/logout` and always performs local token cleanup, including when the API is unavailable.
+- Login saves one access/refresh/user session bundle in Expo SecureStore on Android and iOS. Expo web uses browser local storage because SecureStore is not available on web.
+- Startup remains in an explicit initializing state while it reads and validates the saved session. Connectivity failures retain an authenticated-offline state and retry validation.
+- Protected HTTP `401` responses perform one rotating refresh operation shared by concurrent requests, then retry each original request once.
+- Logout attempts server-side refresh-session revocation and always performs local credential cleanup, including when the API is unavailable.
 
 The current backend does not configure CORS, so browser authentication requests require a separately configured backend origin policy. Native Expo targets are the supported local-development path for the current contract.
 
@@ -114,7 +115,7 @@ The current backend does not configure CORS, so browser authentication requests 
 - Course Details is a compact scoped workspace with a course hero, immediately visible Tasks, one combined Events & Notes board, a schedule summary sheet, and a short recent-Materials preview. Destructive course deletion is intentionally absent here and appears only in the confirmed Danger Zone at the bottom of Edit Course.
 - The responsive Courses screen uses a fixed-height two-column folder grid showing only title, subtitle, course color, and a nonzero active-task badge. A compact full-width Personal Library utility row sits above—not inside—the grid for files without a course.
 - Successful creates refresh the course list, successful edits refresh the detail record, and deletion removes local displayed state before returning to the list.
-- Every course request uses the access token already restored by the authentication context; HTTP `401` clears the local session.
+- Every course request uses the access token restored by the authentication context; an expired access token is refreshed before a conclusive authentication failure clears the session.
 
 ### Task Management flow
 

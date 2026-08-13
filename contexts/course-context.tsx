@@ -18,8 +18,7 @@ import {
   updateCourse as updateCourseRequest,
 } from '@/lib/api/courses';
 import type { Course, CreateCourseRequest, UpdateCourseRequest } from '@/lib/api/course.types';
-
-type CourseListStatus = 'idle' | 'loading' | 'success' | 'error';
+import type { CourseListStatus } from '@/lib/courses/course-list-state';
 
 type CourseContextValue = {
   courses: Course[];

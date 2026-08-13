@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '@/lib/config/environment';
+import { createSingleFlight } from '@/lib/auth/single-flight';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
@@ -9,6 +10,18 @@ type RequestOptions = {
   headers?: HeadersInit;
   timeoutMs?: number;
 };
+
+type ApiAuthHandlers = {
+  refresh: () => Promise<string | null>;
+  invalidate: () => Promise<void>;
+};
+
+let authHandlers: ApiAuthHandlers | null = null;
+const runRefreshSingleFlight = createSingleFlight<string | null>();
+
+export function setApiAuthHandlers(handlers: ApiAuthHandlers | null): void {
+  authHandlers = handlers;
+}
 
 type ApiErrorEnvelope = {
   error: {
@@ -93,6 +106,7 @@ export class ApiClient {
     path: string,
     init: RequestInit,
     options: RequestOptions,
+    allowRefresh = true,
   ): Promise<T> {
     const controller = new AbortController();
     const timeoutMs = options.timeoutMs ?? this.defaultTimeoutMs;
@@ -136,6 +150,22 @@ export class ApiClient {
 
     if (!acceptedStatuses.includes(response.status)) {
       const errorEnvelope = await this.readErrorEnvelope(response);
+
+      if (response.status === 401 && allowRefresh && headers.has('Authorization') && authHandlers) {
+        try {
+          const nextAccessToken = await runRefreshSingleFlight(authHandlers.refresh);
+          if (nextAccessToken) {
+            headers.set('Authorization', `Bearer ${nextAccessToken}`);
+            return this.request<T>(path, { ...init, headers }, options, false);
+          }
+          await authHandlers.invalidate();
+        } catch (refreshError) {
+          if (refreshError instanceof ApiClientError && refreshError.status === 401) {
+            await authHandlers.invalidate();
+          }
+          throw refreshError;
+        }
+      }
 
       throw new ApiClientError(
         errorEnvelope?.error.message ??

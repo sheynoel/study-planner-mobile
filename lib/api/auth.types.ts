@@ -27,6 +27,7 @@ export type LoginRequest = {
 export type LoginResponse = {
   data: {
     accessToken: string;
+    refreshToken: string;
     tokenType: 'Bearer';
     user: User;
   };
@@ -41,6 +42,9 @@ export type CurrentUserResponse = {
 export type LogoutResponse = {
   data: {
     message: string;
-    tokenInvalidation: 'client-managed';
+    tokenInvalidation: 'server-revoked';
   };
 };
+
+export type RefreshRequest = { refreshToken: string };
+export type RefreshResponse = LoginResponse;

@@ -7,24 +7,31 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
 
-import { ApiClientError, getApiErrorMessage } from '@/lib/api/api-client';
+import { ApiClientError, getApiErrorMessage, setApiAuthHandlers } from '@/lib/api/api-client';
 import {
   getCurrentUser,
   login as loginRequest,
   logout as logoutRequest,
+  refresh as refreshRequest,
   register as registerRequest,
 } from '@/lib/api/auth';
 import type { LoginRequest, RegisterRequest, User } from '@/lib/api/auth.types';
 import {
-  deleteStoredAccessToken,
-  getStoredAccessToken,
-  saveAccessToken,
+  deleteStoredAuthSession,
+  getStoredAuthSession,
+  saveAuthSession,
+  type StoredAuthSession,
 } from '@/lib/auth/token-storage';
+import { classifySessionRestorationFailure } from '@/lib/auth/session-restoration';
+
+export type AuthStatus = 'initializing' | 'authenticated' | 'authenticated-offline' | 'unauthenticated';
 
 type AuthContextValue = {
   accessToken: string | null;
   isLoading: boolean;
+  status: AuthStatus;
   login: (request: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   register: (request: RegisterRequest) => Promise<void>;
@@ -38,38 +45,86 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState<AuthStatus>('initializing');
   const [sessionError, setSessionError] = useState<string | null>(null);
+
+  const publishSession = useCallback((session: StoredAuthSession, nextStatus: AuthStatus = 'authenticated') => {
+    setAccessToken(session.accessToken);
+    setUser(session.user);
+    setStatus(nextStatus);
+    setIsLoading(false);
+  }, []);
+
+  const invalidateSession = useCallback(async () => {
+    await deleteStoredAuthSession();
+    setAccessToken(null);
+    setUser(null);
+    setSessionError(null);
+    setStatus('unauthenticated');
+    setIsLoading(false);
+  }, []);
+
+  const refreshStoredSession = useCallback(async () => {
+    const stored = await getStoredAuthSession();
+    if (!stored?.refreshToken) return null;
+    const response = await refreshRequest(stored.refreshToken);
+    const next: StoredAuthSession = {
+      accessToken: response.data.accessToken,
+      refreshToken: response.data.refreshToken,
+      user: response.data.user,
+    };
+    await saveAuthSession(next);
+    publishSession(next);
+    setSessionError(null);
+    return next.accessToken;
+  }, [publishSession]);
+
+  useEffect(() => {
+    setApiAuthHandlers({ refresh: refreshStoredSession, invalidate: invalidateSession });
+    return () => setApiAuthHandlers(null);
+  }, [invalidateSession, refreshStoredSession]);
+
+  const validateStoredSession = useCallback(async (stored: StoredAuthSession) => {
+    try {
+      const response = await getCurrentUser(stored.accessToken);
+      const validated = { ...stored, user: response.data.user };
+      await saveAuthSession(validated);
+      publishSession(validated);
+      setSessionError(null);
+    } catch (error) {
+      const decision = error instanceof ApiClientError
+        ? classifySessionRestorationFailure(error)
+        : 'offline';
+      if (decision === 'invalidate') {
+        await invalidateSession();
+        return;
+      }
+      publishSession(stored, 'authenticated-offline');
+      setSessionError(error instanceof ApiClientError && (error.kind === 'network' || error.kind === 'timeout')
+        ? 'You are offline. Your saved session will be checked again when the API is reachable.'
+        : `Your saved session could not be validated. ${getApiErrorMessage(error)}`);
+    }
+  }, [invalidateSession, publishSession]);
 
   useEffect(() => {
     let isCurrent = true;
 
     async function restoreSession() {
       try {
-        const storedToken = await getStoredAccessToken();
+        const stored = await getStoredAuthSession();
 
-        if (!storedToken) {
+        if (!stored) {
+          if (isCurrent) {
+            setStatus('unauthenticated');
+            setIsLoading(false);
+          }
           return;
         }
-
-        try {
-          const response = await getCurrentUser(storedToken);
-
-          if (isCurrent) {
-            setAccessToken(storedToken);
-            setUser(response.data.user);
-          }
-        } catch (error) {
-          if (error instanceof ApiClientError && error.status === 401) {
-            await deleteStoredAccessToken();
-          } else if (isCurrent) {
-            setSessionError(
-              `Your saved session could not be restored. ${getApiErrorMessage(error)}`,
-            );
-          }
-        }
+        if (isCurrent) await validateStoredSession(stored);
       } catch (error) {
         if (isCurrent) {
           setSessionError(`Your saved session could not be read. ${getApiErrorMessage(error)}`);
+          setStatus('unauthenticated');
         }
       } finally {
         if (isCurrent) {
@@ -83,15 +138,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [validateStoredSession]);
+
+  useEffect(() => {
+    if (status !== 'authenticated-offline') return;
+    const retry = () => { void getStoredAuthSession().then((stored) => stored && validateStoredSession(stored)); };
+    const interval = setInterval(retry, 30_000);
+    const subscription = AppState.addEventListener('change', (next) => { if (next === 'active') retry(); });
+    return () => { clearInterval(interval); subscription.remove(); };
+  }, [status, validateStoredSession]);
 
   const establishSession = useCallback(async (request: LoginRequest) => {
     const response = await loginRequest(request);
-    await saveAccessToken(response.data.accessToken);
-    setAccessToken(response.data.accessToken);
-    setUser(response.data.user);
+    const session = { accessToken: response.data.accessToken, refreshToken: response.data.refreshToken, user: response.data.user };
+    await saveAuthSession(session);
+    publishSession(session);
     setSessionError(null);
-  }, []);
+  }, [publishSession]);
 
   const login = useCallback(
     async (request: LoginRequest) => {
@@ -124,14 +187,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let storageError: unknown;
 
     try {
-      if (accessToken) {
-        await logoutRequest(accessToken);
+      const stored = await getStoredAuthSession();
+      if (stored?.refreshToken) {
+        await logoutRequest(stored.refreshToken);
       }
     } catch {
-      // Logout is client-managed, so local cleanup must continue if the API is unavailable.
+      // Local cleanup must continue if server-side revocation is unavailable.
     } finally {
       try {
-        await deleteStoredAccessToken();
+        await deleteStoredAuthSession();
       } catch (error) {
         storageError = error;
       }
@@ -139,16 +203,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setAccessToken(null);
       setUser(null);
       setSessionError(null);
+      setStatus('unauthenticated');
+      setIsLoading(false);
     }
 
     if (storageError) {
       throw storageError;
     }
-  }, [accessToken]);
+  }, []);
 
   const value = useMemo(
-    () => ({ accessToken, isLoading, login, logout, register, sessionError, user }),
-    [accessToken, isLoading, login, logout, register, sessionError, user],
+    () => ({ accessToken, isLoading, login, logout, register, sessionError, status, user }),
+    [accessToken, isLoading, login, logout, register, sessionError, status, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
