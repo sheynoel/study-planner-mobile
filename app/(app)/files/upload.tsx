@@ -28,17 +28,20 @@ export default function UploadFileScreen() {
 
   async function submit(request: UploadFileRequest) {
     await uploadFile(request);
+  }
+
+  function complete(selectedCourseId: string | null) {
     allowClose.current = true;
     setDirty(false);
     if (returnOnSuccess) { router.back(); return; }
     if (courseId || library === 'personal') {
-      router.replace(request.courseId ? fileRoutes.forCourse(request.courseId) : fileRoutes.personal);
+      router.replace(selectedCourseId ? fileRoutes.forCourse(selectedCourseId) : fileRoutes.personal);
       return;
     }
     router.replace(fileRoutes.list);
   }
 
-  return <AppBottomSheet expandable expandedSnap={0.96} initialSnap={0.6} modal={false} onClose={close} title="Add Material"><FileUploadForm autoPick={autoPick} courses={courses} initialCourseId={courseId} lockCourse={Boolean(courseId)} onDirtyChange={setDirty} onSubmit={submit} onSubmittingChange={setSubmitting} /></AppBottomSheet>;
+  return <AppBottomSheet expandable expandedSnap={0.96} initialSnap={0.6} modal={false} onClose={close} title="Import Files"><FileUploadForm autoPick={autoPick} courses={courses} initialCourseId={courseId} lockCourse={Boolean(courseId)} onComplete={complete} onDirtyChange={setDirty} onSubmit={submit} onSubmittingChange={setSubmitting} /></AppBottomSheet>;
 }
 
 function first(value?: string | string[]): string | undefined { return Array.isArray(value) ? value[0] : value; }

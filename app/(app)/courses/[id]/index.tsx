@@ -44,7 +44,7 @@ export default function CourseDetailsScreen() {
   const { loadCourseEvents } = useCalendar();
   const { loadCourseSchedules, schedules } = useClassSchedules();
   const { getCachedCourse, loadCourse } = useCourses();
-  const { files, loadFiles } = useFiles();
+  const { files, loadFiles, openFile } = useFiles();
   const { loadNotes, notes } = useNotes();
   const { completeTask, loadTasks, tasks } = useTasks();
   const [course, setCourse] = useState<Course | null>(() => courseId ? getCachedCourse(courseId) ?? null : null);
@@ -82,7 +82,7 @@ export default function CourseDetailsScreen() {
       <CourseHero course={course} onSchedulePress={() => setScheduleVisible(true)} schedules={schedules} />
       <WorkspaceSection actions={<SectionAction icon="options-outline" label={activeTaskFilterCount(taskFilters) ? `Filter ${activeTaskFilterCount(taskFilters)}` : 'Filter'} onPress={() => setFilterVisible(true)} />} title="Tasks"><View style={styles.list}>{visibleTasks.length ? visibleTasks.map((task) => <AcademicTaskCard course={course} isCompleting={completingIds.has(task.id)} key={task.id} onComplete={() => void handleComplete(task.id)} onPress={() => router.push(taskRoutes.details(task.id))} task={task} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>{courseTasks.length ? 'No active tasks match this filter.' : 'No active tasks yet.'}</ThemedText>}</View></WorkspaceSection>
       <WorkspaceSection title="Events & Notes">{upcomingEvents.length || courseNotes.length ? <View style={styles.cardGrid}>{courseNotes.filter((note) => note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}{upcomingEvents.map((event) => <CourseEventCard event={event} key={event.id} onPress={() => router.push(calendarRoutes.details(event.id))} width={cardWidth} />)}{courseNotes.filter((note) => !note.isPinned).map((note) => <CourseNoteCard accent={course.color} key={note.id} note={note} onPress={() => router.push(noteRoutes.details(note.id))} width={cardWidth} />)}</View> : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No events or notes yet.</ThemedText>}</WorkspaceSection>
-      <WorkspaceSection actions={<SectionAction icon="chevron-forward" label="Open materials" onPress={() => router.push(fileRoutes.forCourse(courseId))} />} title="Materials"><View style={styles.list}>{recentFiles.length ? recentFiles.map((file) => <CourseMaterialRow file={file} key={file.id} onPress={() => router.push(fileRoutes.details(file.id))} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No materials yet.</ThemedText>}</View></WorkspaceSection>
+      <WorkspaceSection actions={<SectionAction icon="chevron-forward" label="Open materials" onPress={() => router.push(fileRoutes.forCourse(courseId))} />} title="Materials"><View style={styles.list}>{recentFiles.length ? recentFiles.map((file) => <CourseMaterialRow file={file} key={file.id} onPress={() => void openFile(file).catch((error) => setLoadError(getApiErrorMessage(error)))} />) : <ThemedText style={[styles.empty, { color: colors.textSecondary }]}>No materials yet.</ThemedText>}</View></WorkspaceSection>
     </ScrollView> : null}
     <CourseScheduleSheet onClose={() => setScheduleVisible(false)} onEdit={() => router.push(classScheduleRoutes.courseList(courseId!))} schedules={schedules} visible={scheduleVisible} />
     <TaskFilterSheet onApply={(value) => setTaskFilters({ ...value, courseId })} onClose={() => setFilterVisible(false)} value={{ ...taskFilters, courseId }} visible={filterVisible} />
@@ -98,7 +98,7 @@ function courseQuickAddActions(courseId: string): FloatingActionMenuAction[] { r
     { icon: 'calendar-outline', label: 'Event', onPress: () => router.push(calendarRoutes.addForCourse(courseId)) },
     { icon: 'document-text-outline', label: 'Note', onPress: () => router.push(noteRoutes.addForCourse(courseId)) },
   ] },
-  { accessibilityLabel: 'Upload course material', icon: 'cloud-upload-outline', label: 'Materials', onPress: () => router.push(fileRoutes.uploadFromCourseDetails(courseId)) },
+  { accessibilityLabel: 'Import course material', icon: 'document-attach-outline', label: 'Materials', onPress: () => router.push(fileRoutes.uploadFromCourseDetails(courseId)) },
 ]; }
 function noteTime(note: { relevantAt: string | null; reminderAt: string | null; updatedAt: string }): number { return Date.parse(note.reminderAt ?? note.relevantAt ?? note.updatedAt); }
 const styles = StyleSheet.create({ content: { gap: DesignTokens.spacing.lg, padding: DesignTokens.layout.screenPadding, paddingBottom: 104 }, section: { gap: DesignTokens.spacing.sm }, sectionHeader: { alignItems: 'center', flexDirection: 'row', minHeight: 36 }, sectionTitle: { flex: 1, fontSize: 16, fontWeight: '800', lineHeight: 21 }, list: { gap: 6 }, cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: DesignTokens.spacing.sm }, empty: { fontSize: 11, lineHeight: 16, paddingVertical: DesignTokens.spacing.xs }, action: { alignItems: 'center', flexDirection: 'row', gap: 3, justifyContent: 'center', minHeight: 44, paddingHorizontal: 6 }, actionLabel: { fontSize: 10, fontWeight: '700' }, pressed: { opacity: 0.64 } });

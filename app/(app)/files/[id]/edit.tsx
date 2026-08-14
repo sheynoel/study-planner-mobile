@@ -24,7 +24,7 @@ export default function EditFileScreen() {
     if (!fileId) { setError('This file link is invalid.'); return; }
     void Promise.all([loadFile(fileId), loadCourses()]).then(([loaded]) => setFile(loaded)).catch((reason) => setError(getApiErrorMessage(reason)));
   }, [fileId, loadCourses, loadFile]);
-  async function submit(request: UpdateFileRequest) {
+  async function submit(request: UpdateFileRequest & { description?: string | null }) {
     if (!file) throw new Error('The file is unavailable.');
     await updateFile(file.id, request);
     if (router.canGoBack()) router.back();
@@ -35,7 +35,7 @@ export default function EditFileScreen() {
     setError(null);
     void Promise.all([loadFile(fileId), loadCourses()]).then(([loaded]) => setFile(loaded)).catch((reason) => setError(getApiErrorMessage(reason)));
   }
-  return <ThemedView style={styles.screen}><SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}><AppHeader onBack={() => router.back()} title="Edit file" />{!file && !error ? <LoadingState label="Loading file..." /> : null}{error && !file ? <ErrorState message={error} onRetry={retry} /> : null}{file ? <FileMetadataForm courses={courses} initialCourseId={file.courseId} initialDisplayName={file.displayName} onSubmit={submit} /> : null}</SafeAreaView></ThemedView>;
+  return <ThemedView style={styles.screen}><SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}><AppHeader onBack={() => router.back()} title="Edit local file" />{!file && !error ? <LoadingState label="Loading file..." /> : null}{error && !file ? <ErrorState message={error} onRetry={retry} /> : null}{file ? <FileMetadataForm courses={courses} initialCourseId={file.courseId} initialDescription={file.description ?? ''} initialDisplayName={file.displayName} onSubmit={submit} /> : null}</SafeAreaView></ThemedView>;
 }
 
 const styles = StyleSheet.create({ screen: { flex: 1 }, safeArea: { flex: 1 } });

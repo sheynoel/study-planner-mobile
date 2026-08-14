@@ -22,6 +22,10 @@ export type FileRecord = {
   createdAt: string;
   updatedAt: string;
   course: FileCourse | null;
+  localUri: string;
+  lastOpenedAt: string | null;
+  description: string | null;
+  localOnly: true;
 };
 
 export type PickedFile = {
@@ -36,6 +40,8 @@ export type UploadFileRequest = {
   file: PickedFile;
   displayName?: string;
   courseId?: string;
+  courseName?: string;
+  description?: string;
 };
 
 export type UpdateFileRequest = {

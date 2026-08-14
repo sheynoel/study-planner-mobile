@@ -1,10 +1,10 @@
 # Study Planner Mobile
 
-Expo and React Native TypeScript client for a personal, cloud-synchronized student planner and file organizer.
+Expo and React Native TypeScript client for a personal study planner with a device-local offline file library.
 
 ## Current status
 
-The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Note, Class Schedule, and File Management flows are implemented on Expo SDK 54. The authenticated experience uses a responsive student workspace: a compact day-focused Home, task lists, course folders, a calendar timeline, and organized study materials. A local Appearance system provides ten coordinated themes, system/light/dark modes, curated accents, and a visual custom accent picker. Native access tokens and local preferences are stored with Expo SecureStore. Notification preferences have UI and local persistence, but notification delivery, SQLite, and offline synchronization are not implemented.
+The mobile-to-backend connection, authentication, Home Dashboard, Course, Task, Calendar, Note, and Class Schedule flows are implemented on Expo SDK 54. File Management is deliberately independent from the backend: imported files and SQLite metadata remain only in app-private device storage and work offline. The authenticated experience uses a responsive student workspace and a local light/dark Appearance system. Notification delivery and general planner-data offline synchronization are not implemented.
 
 The sibling `study-planner-api` repository owns the product and backend planning documents:
 
@@ -18,7 +18,7 @@ The sibling `study-planner-api` repository owns the product and backend planning
 - [`docs/TASKS.md`](docs/TASKS.md) documents the implemented mobile Task flow and backend assumptions.
 - [`docs/CALENDAR.md`](docs/CALENDAR.md) documents the combined mobile event and task-deadline calendar.
 - [`docs/CLASS_SCHEDULES.md`](docs/CLASS_SCHEDULES.md) documents weekly class management and local calendar occurrence generation.
-- [`docs/FILES.md`](docs/FILES.md) documents mobile picking, multipart upload, authenticated download, and metadata management.
+- [`docs/FILES.md`](docs/FILES.md) documents persistent device-local importing, SQLite metadata, opening, sharing, and removal.
 - [`docs/DASHBOARD.md`](docs/DASHBOARD.md) documents dashboard aggregation, local date ranges, partial failures, and refresh behavior.
 - [`docs/NOTES.md`](docs/NOTES.md) documents lightweight Notes, course context, and Home class matching.
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) documents the shared visual tokens, components, accessibility rules, and five-tab navigation constraint.
@@ -31,9 +31,9 @@ Read those documents before changing product behavior or API integration.
 - Manage personal and course-related tasks and calendar events.
 - Manage courses and recurring class schedules.
 - View events, task deadlines, and class occurrences in combined month, week, and agenda calendars.
-- Organize, upload, download, open, rename, delete, and filter personal or course files.
+- Organize, import, open, rename, move, export, delete, filter, and sort personal or course files entirely on-device.
 - Authenticate against the NestJS API and store credentials securely.
-- Add notifications, local SQLite caching, offline synchronization, and an APK build in later roadmap phases.
+- Add notifications, general planner-data offline synchronization, and an APK build in later roadmap phases.
 
 ## Project structure
 
@@ -147,13 +147,12 @@ The current backend does not configure CORS, so browser authentication requests 
 
 ### File Management flow
 
-- Course Details previews recent course files and opens the compact course-scoped Materials library, while Courses > Personal Library shows only files with `courseId: null`. The all-files route remains implemented but is not duplicated in Settings.
-- Shared material filters provide All, PDF, Slides, Documents, and Images categories. Slides maps to PPT/PPTX, Documents to DOC/DOCX/TXT, and Images to the supported image extensions.
-- Upload uses a compact expandable sheet. Course Details > Materials opens Expo DocumentPicker automatically, locks the current Course, then returns after the existing multipart upload so the preview refreshes. The picker retains URI/name/MIME metadata and never reads Base64 into JavaScript.
-- The picker and form enforce the documented 25 MiB default before upload; backend validation messages remain authoritative.
-- Details support authenticated download into Expo's temporary cache, progress display, and opening the platform share sheet through Expo Sharing.
-- Downloaded files are explicit temporary transfers, not an offline cache or synchronization layer.
-- Rename/course assignment, course removal, and deletion refresh relevant File state after server confirmation.
+- Course Details previews recent local course files and opens the course-scoped Materials library, while Courses > Personal Library shows files with `courseId: null`.
+- Expo DocumentPicker supports one or multiple selections. Every selection is copied from temporary picker storage into the private persistent document directory with a collision-proof sanitized name.
+- Expo SQLite stores local metadata through migration 1. The mobile file context and Home dashboard read this database and never call the backend File API.
+- Shared filters provide All, PDF, Documents, Presentations, Spreadsheets, Images, and Others, plus All/Personal/course filtering and all six requested sorts.
+- Android opens a shareable content URI with an OS viewer intent. iOS uses the share/Open In sheet, and images also have an in-app preview.
+- Rename, description, move, share/export, missing-file errors, and confirmed removal are local operations. Removal never deletes the picker source outside the app.
 
 ### Home Dashboard flow
 
@@ -187,5 +186,5 @@ Use the exact Expo SDK 54 documentation when making code changes: <https://docs.
 - Class schedules always belong to courses and each weekday meeting is stored as a separate weekly schedule record.
 - API contracts come from the backend documentation and implementation, not assumptions in UI code.
 - Access tokens belong in SecureStore on native devices, never SQLite or React component state alone.
-- SQLite will be a later local cache/offline layer; the cloud API remains authoritative across devices.
+- SQLite is authoritative only for the device-local File Library; other planner records remain backend-authoritative.
 - The backend currently uses development-only local file bytes and PostgreSQL metadata; mobile never receives internal storage paths.

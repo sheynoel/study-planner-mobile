@@ -7,9 +7,9 @@ import type { Task } from '@/lib/api/task.types';
 import { getCalendarEvents } from '@/lib/api/calendar-events';
 import { getClassSchedules } from '@/lib/api/class-schedules';
 import { getCourses } from '@/lib/api/courses';
-import { getFiles } from '@/lib/api/files';
 import { getTasks } from '@/lib/api/tasks';
 import { toLocalDateKey } from '@/lib/calendar/calendar-date';
+import { listLocalFileRecords } from '@/lib/files/local-file-database';
 
 export type DashboardSource = 'courses' | 'tasks' | 'events' | 'schedules' | 'files';
 
@@ -36,7 +36,7 @@ export async function loadDashboardData(
     getTasks(accessToken),
     getCalendarEvents(accessToken, { from: start.toISOString(), to: end.toISOString() }),
     getClassSchedules(accessToken, { from: firstDate, to: lastDate }),
-    getFiles(accessToken),
+    listLocalFileRecords(),
   ] as const);
   const sources: DashboardSource[] = ['courses', 'tasks', 'events', 'schedules', 'files'];
   const errors: Partial<Record<DashboardSource, string>> = {};
@@ -50,7 +50,7 @@ export async function loadDashboardData(
     tasks: requests[1].status === 'fulfilled' ? requests[1].value.data.tasks : [],
     events: requests[2].status === 'fulfilled' ? requests[2].value.data.events : [],
     schedules: requests[3].status === 'fulfilled' ? requests[3].value.data.schedules : [],
-    files: requests[4].status === 'fulfilled' ? requests[4].value.data.files : [],
+    files: requests[4].status === 'fulfilled' ? requests[4].value : [],
     errors,
     unauthorized: requests.some(
       (result) => result.status === 'rejected' && result.reason instanceof ApiClientError && result.reason.status === 401,
